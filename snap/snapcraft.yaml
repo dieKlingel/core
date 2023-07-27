@@ -1,0 +1,43 @@
+name: dieklingel-core
+title: dieKlingel Core
+contact: kai.mayer@dieklingel.com
+website: https://dieklingel.de/
+license: GPL-3.0
+version: 0.1.3+1
+summary: The core of the dieKlingel project.
+description: The core project containing the most important services to run the door unit.
+confinement: strict
+compression: lzo
+base: core22
+grade: stable
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+apps:
+  core:
+    daemon: simple
+    restart-delay: 3s
+    restart-condition: always
+    command: bin/core
+    plugs:
+      - network
+      - camera
+      - audio-playback
+      - audio-record
+    environment:
+      DIEKLINGEL_HOME: "$SNAP_USER_COMMON"
+
+parts:
+  core:
+    plugin: go
+    source: .
+    build-snaps:
+      - go
+    build-packages:
+      - libopus-dev
+      - libvpx-dev
+    stage-packages:
+      - libopus-dev
+      - libvpx-dev
