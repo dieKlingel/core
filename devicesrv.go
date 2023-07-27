@@ -24,7 +24,7 @@ func onDevices(client mqtt.Client, req Request) Response {
 	db, err := clover.Open("storage")
 
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}
 
 	defer db.Close()
@@ -35,7 +35,7 @@ func onDevices(client mqtt.Client, req Request) Response {
 
 	docs, err := db.FindAll(query.NewQuery("devices"))
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not fetch the devices: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not fetch the devices: %s", err.Error()), 500)
 	}
 
 	devices := make([]Device, 0)
@@ -46,25 +46,25 @@ func onDevices(client mqtt.Client, req Request) Response {
 
 	json, err := json.Marshal(devices)
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not serializer the result: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not serializer the result: %s", err.Error()), 500)
 	}
 
-	return NewResponse(string(json), 200)
+	return NewResponseFromString(string(json), 200)
 }
 
 func onCreateDevice(client mqtt.Client, req Request) Response {
 	device := Device{}
 	if err := json.Unmarshal([]byte(req.Body), &device); err != nil {
-		return NewResponse(fmt.Sprintf("could not parse the device: %s", err.Error()), 400)
+		return NewResponseFromString(fmt.Sprintf("could not parse the device: %s", err.Error()), 400)
 	}
 
 	if len(device.Token) == 0 {
-		return NewResponse("the token cannot be empty", 400)
+		return NewResponseFromString("the token cannot be empty", 400)
 	}
 
 	db, err := clover.Open("storage")
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}
 	defer db.Close()
 
@@ -81,10 +81,10 @@ func onCreateDevice(client mqtt.Client, req Request) Response {
 	doc.SetExpiresAt(time.Now().Add(time.Hour * 24 * 60))
 
 	if err := db.Insert("devices", doc); err != nil {
-		return NewResponse(fmt.Sprintf("could not insert device: %s", err.Error()), 400)
+		return NewResponseFromString(fmt.Sprintf("could not insert device: %s", err.Error()), 400)
 	}
 
-	return NewResponse("Ok", 201)
+	return NewResponseFromString("Ok", 201)
 }
 
 func onUpdateDevice(client mqtt.Client, req Request) Response {
@@ -93,16 +93,16 @@ func onUpdateDevice(client mqtt.Client, req Request) Response {
 
 	device := Device{}
 	if err := json.Unmarshal([]byte(req.Body), &device); err != nil {
-		return NewResponse(fmt.Sprintf("could not parse the device: %s", err.Error()), 400)
+		return NewResponseFromString(fmt.Sprintf("could not parse the device: %s", err.Error()), 400)
 	}
 
 	if len(device.Token) == 0 {
-		return NewResponse("the token cannot be empty", 400)
+		return NewResponseFromString("the token cannot be empty", 400)
 	}
 
 	db, err := clover.Open("storage")
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}
 	defer db.Close()
 
@@ -111,10 +111,10 @@ func onUpdateDevice(client mqtt.Client, req Request) Response {
 	values["signs"] = device.Signs
 
 	if err := db.Update(query.NewQuery("devices").Where(query.Field("token").Eq(token)), values); err != nil {
-		return NewResponse(fmt.Sprintf("could not update the device: %s", err.Error()), 400)
+		return NewResponseFromString(fmt.Sprintf("could not update the device: %s", err.Error()), 400)
 	}
 
-	return NewResponse("Ok", 200)
+	return NewResponseFromString("Ok", 200)
 }
 
 func onDeleteDevice(client mqtt.Client, req Request) Response {
@@ -123,12 +123,12 @@ func onDeleteDevice(client mqtt.Client, req Request) Response {
 
 	db, err := clover.Open("storage")
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}
 	defer db.Close()
 
 	if err := db.Delete(query.NewQuery("devices").Where(query.Field("token").Eq(token))); err != nil {
-		return NewResponse(fmt.Sprintf("Could not delete devices: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not delete devices: %s", err.Error()), 500)
 	}
-	return NewResponse("Ok", 204)
+	return NewResponseFromString("Ok", 204)
 }

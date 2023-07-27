@@ -62,8 +62,13 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 
 	select {
 	case res := <-result:
-		writer.WriteHeader(res.StatusCode)
-		writer.Write([]byte(res.Body))
+		/* for header, value := range res.Headers {
+			fmt.Print(header + ":" + value)
+			writer.Header().Set(header, value)
+		}*/
+		//writer.WriteHeader(res.StatusCode)
+		writer.Header().Set("Content-Type", "image/jpeg")
+		writer.Write(res.Body)
 	case <-time.After(10 * time.Second):
 		writer.WriteHeader(http.StatusNotFound)
 	}

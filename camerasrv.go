@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"image/jpeg"
 	"path"
@@ -20,7 +19,7 @@ func onSnapshot(c mqtt.Client, req Request) Response {
 		Video: func(constraint *mediadevices.MediaTrackConstraints) {},
 	})
 	if err != nil {
-		return NewResponse(fmt.Sprintf("cannot capture frame: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("cannot capture frame: %s", err.Error()), 500)
 	}
 
 	// Since track can represent audio as well, we need to cast it to
@@ -33,13 +32,10 @@ func onSnapshot(c mqtt.Client, req Request) Response {
 	// can be reused for the next frames.
 	videoReader := videoTrack.NewReader(false)
 	frame, release, _ := videoReader.Read()
-	defer release()
-
-	// Since frame is the standard image.Image, it's compatible with Go standard
-	// library. For example, capturing the first frame and store it as a jpeg image.
 	var output bytes.Buffer
 	jpeg.Encode(&output, frame, nil)
+	release()
 
-	response := NewResponse(hex.EncodeToString(output.Bytes()), 200)
+	response := NewResponse(output.Bytes(), 200)
 	return response.WithContentType("image/jpeg")
 }

@@ -29,10 +29,10 @@ func RegisterRtcHandler(prefix string, client mqtt.Client) {
 func onGetConnections(c mqtt.Client, req Request) Response {
 	json, err := json.Marshal(connections)
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not encode: %s.", err), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not encode: %s.", err), 500)
 	}
 
-	return NewResponse(string(json), 200)
+	return NewResponseFromString(string(json), 200)
 }
 
 func onCreateConnection(client mqtt.Client, req Request) Response {
@@ -40,7 +40,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	id := pathSegments[len(pathSegments)-1]
 
 	if _, exists := connections[id]; exists {
-		return NewResponse(fmt.Sprintf("Cannot create a connection with id '%s' because a connection with this id already exists.", id), 409)
+		return NewResponseFromString(fmt.Sprintf("Cannot create a connection with id '%s' because a connection with this id already exists.", id), 409)
 	}
 
 	vpxParams, err := vpx.NewVP8Params()
@@ -65,7 +65,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	})
 
 	if err != nil {
-		return NewResponse(fmt.Sprintf("error while opening media devices: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("error while opening media devices: %s", err.Error()), 500)
 	}
 
 	mediaEngine := webrtc.MediaEngine{}
@@ -84,7 +84,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	)
 	if err != nil {
 		peerConnection.Close()
-		return NewResponse(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
 	}
 
 	for _, track := range stream.GetTracks() {
@@ -132,7 +132,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 
 	connections[id] = peerConnection
 
-	return NewResponse(string(json), 201)
+	return NewResponseFromString(string(json), 201)
 }
 
 func onCloseConnection(client mqtt.Client, req Request) Response {
@@ -149,7 +149,7 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 		connection.Close()
 	}
 
-	return NewResponse("", 200)
+	return NewResponseFromString("", 200)
 }
 
 func onAddCandidate(client mqtt.Client, req Request) Response {
@@ -159,16 +159,16 @@ func onAddCandidate(client mqtt.Client, req Request) Response {
 	candidate := &webrtc.ICECandidateInit{}
 	if err := json.Unmarshal([]byte(req.Body), candidate); err != nil {
 		log.Printf("could not parse candidate: %s", err.Error())
-		return NewResponse(fmt.Sprintf("the canidate could not be parsed: %s", err.Error()), 400)
+		return NewResponseFromString(fmt.Sprintf("the canidate could not be parsed: %s", err.Error()), 400)
 	}
 
 	if connection, exists := connections[id]; exists {
 		if err := connection.AddICECandidate(*candidate); err != nil {
 			log.Printf("could not add candidate: %s", err.Error())
-			return NewResponse(fmt.Sprintf("could not add the candidate: %s", err.Error()), 500)
+			return NewResponseFromString(fmt.Sprintf("could not add the candidate: %s", err.Error()), 500)
 		}
-		return NewResponse("ok", 200)
+		return NewResponseFromString("ok", 200)
 	}
 
-	return NewResponse("the requested resource does not exist", 404)
+	return NewResponseFromString("the requested resource does not exist", 404)
 }

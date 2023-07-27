@@ -17,15 +17,15 @@ func RegisterSignHandler(prefix string, client mqtt.Client) {
 func onSigns(cient mqtt.Client, req Request) Response {
 	config, err := NewConfigFromCurrentDirectory()
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not create config: %s.", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not create config: %s.", err.Error()), 500)
 	}
 
 	json, err := json.Marshal(config.Gui.Signs)
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not serialize signs: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not serialize signs: %s", err.Error()), 500)
 	}
 
-	return NewResponse(string(json), 200)
+	return NewResponseFromString(string(json), 200)
 }
 
 func onSignRing(client mqtt.Client, req Request) Response {
@@ -39,5 +39,5 @@ func onSignRing(client mqtt.Client, req Request) Response {
 		},
 	)
 
-	return NewResponse("Ok", 200)
+	return NewResponseFromString("Ok", 200)
 }

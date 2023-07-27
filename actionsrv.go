@@ -19,15 +19,15 @@ func RegisterActionHandler(prefix string, client mqtt.Client) {
 func onActions(client mqtt.Client, req Request) Response {
 	config, err := NewConfigFromCurrentDirectory()
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not read config: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not read config: %s", err.Error()), 500)
 	}
 
 	json, err := json.Marshal(config.Actions)
 	if err != nil {
-		return NewResponse(fmt.Sprintf("Could not serialize actions: %s", err.Error()), 500)
+		return NewResponseFromString(fmt.Sprintf("Could not serialize actions: %s", err.Error()), 500)
 	}
 
-	return NewResponse(string(json), 200)
+	return NewResponseFromString(string(json), 200)
 }
 
 func onExecuteActions(client mqtt.Client, req Request) Response {
@@ -36,12 +36,12 @@ func onExecuteActions(client mqtt.Client, req Request) Response {
 
 	pattern, ok := payload["pattern"].(string)
 	if !ok {
-		return NewResponse("the pattern has to be of type string", 400)
+		return NewResponseFromString("the pattern has to be of type string", 400)
 	}
 
 	env, ok := payload["environment"].(map[string]interface{})
 	if !ok {
-		return NewResponse("the evironment has to be of type {string: string}", 400)
+		return NewResponseFromString("the evironment has to be of type {string: string}", 400)
 	}
 	environment := make(map[string]string)
 	for key, value := range env {
@@ -50,7 +50,7 @@ func onExecuteActions(client mqtt.Client, req Request) Response {
 
 	actions := ExecuteActionsFromPattern(pattern, environment)
 	json, _ := json.Marshal(actions)
-	return NewResponse(string(json), 200)
+	return NewResponseFromString(string(json), 200)
 }
 
 func ExecuteActionsFromPattern(pattern string, environment map[string]string) []Action {
