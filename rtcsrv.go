@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/dieklingel/core/internal/videosrc"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/pion/mediadevices"
 	"github.com/pion/mediadevices/pkg/codec/opus"
@@ -58,15 +59,21 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		mediadevices.WithAudioEncoders(&opusParams),
 	)
 
+	// TODO: add shared GetUserMedia
 	stream, err = mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
-		Video: func(constraint *mediadevices.MediaTrackConstraints) {},
-		Audio: func(mtc *mediadevices.MediaTrackConstraints) {},
+		//Video: func(constraint *mediadevices.MediaTrackConstraints) {},
+		//Audio: func(mtc *mediadevices.MediaTrackConstraints) {},
 		Codec: codecSelector,
 	})
-
 	if err != nil {
 		return NewResponseFromString(fmt.Sprintf("error while opening media devices: %s", err.Error()), 500)
 	}
+
+	videotrack, err := videosrc.NewSharedVideoTrack(codecSelector)
+	if err != nil {
+		return NewResponseFromString(fmt.Sprintf("error while opening media devices: %s", err.Error()), 500)
+	}
+	stream.AddTrack(videotrack)
 
 	mediaEngine := webrtc.MediaEngine{}
 	codecSelector.Populate(&mediaEngine)

@@ -1,7 +1,7 @@
 package main
 
 type Response struct {
-	Body       []byte            `json:"body"`
+	Body       string            `json:"body"`
 	Headers    map[string]string `json:"headers"`
 	StatusCode int               `json:"statusCode"`
 	empty      bool
@@ -9,7 +9,7 @@ type Response struct {
 
 func NewEmptyResponse() Response {
 	return Response{
-		Body:       make([]byte, 0),
+		Body:       "",
 		Headers:    make(map[string]string),
 		StatusCode: -1,
 		empty:      true,
@@ -17,10 +17,8 @@ func NewEmptyResponse() Response {
 }
 
 func NewResponseFromString(body string, status int) Response {
-	bodyBytes := []byte(body)
-
 	return Response{
-		Body:       bodyBytes,
+		Body:       body,
 		Headers:    make(map[string]string),
 		StatusCode: status,
 		empty:      true,
@@ -28,8 +26,9 @@ func NewResponseFromString(body string, status int) Response {
 }
 
 func NewResponse(body []byte, status int) Response {
+
 	return Response{
-		Body:       body,
+		Body:       string(body[:]),
 		Headers:    make(map[string]string),
 		StatusCode: status,
 		empty:      true,

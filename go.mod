@@ -59,6 +59,7 @@ require (
 	github.com/pions/dtls v1.0.2 // indirect
 	github.com/pions/pkg v0.0.0-20181115215726-b60cd756f712 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	gocv.io/x/gocv v0.33.0
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 )

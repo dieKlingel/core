@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image/jpeg"
 	"path"
+	"time"
 
+	"github.com/dieklingel/core/internal/videosrc"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/pion/mediadevices"
 )
@@ -15,27 +18,31 @@ func RegisterCameraHandler(prefix string, client mqtt.Client) {
 }
 
 func onSnapshot(c mqtt.Client, req Request) Response {
-	stream, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
+	/* stream, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
 		Video: func(constraint *mediadevices.MediaTrackConstraints) {},
 	})
 	if err != nil {
 		return NewResponseFromString(fmt.Sprintf("cannot capture frame: %s", err.Error()), 500)
-	}
+	}*/
 
-	// Since track can represent audio as well, we need to cast it to
-	// *mediadevices.VideoTrack to get video specific functionalities
-	track := stream.GetVideoTracks()[0]
-	videoTrack := track.(*mediadevices.VideoTrack)
+	tr, err := videosrc.NewSharedVideoTrack(&mediadevices.CodecSelector{})
+	if err != nil {
+		return NewResponseFromString(fmt.Sprintf("cannot capture frame: %s", err.Error()), 500)
+	}
+	videoTrack := tr.(*mediadevices.VideoTrack)
 	defer videoTrack.Close()
 	// Create a new video reader to get the decoded frames. Release is used
 	// to return the buffer to hold frame back to the source so that the buffer
 	// can be reused for the next frames.
+	time.Sleep(time.Millisecond * 500)
+
 	videoReader := videoTrack.NewReader(false)
 	frame, release, _ := videoReader.Read()
 	var output bytes.Buffer
 	jpeg.Encode(&output, frame, nil)
 	release()
 
-	response := NewResponse(output.Bytes(), 200)
+	body := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(output.Bytes())
+	response := NewResponseFromString(body, 200)
 	return response.WithContentType("image/jpeg")
 }

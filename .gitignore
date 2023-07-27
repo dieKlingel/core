@@ -25,3 +25,6 @@ go.work
 
 # VSCode Specific
 .vscode
+
+# Go Debuging
+__debug_bin
