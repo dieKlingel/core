@@ -28,3 +28,6 @@ go.work
 
 # Go Debuging
 __debug_bin
+
+# Snapcraft
+*.snap

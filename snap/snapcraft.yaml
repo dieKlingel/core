@@ -12,7 +12,7 @@ base: core22
 grade: stable
 
 architectures:
-  - build-on: amd64
+#  - build-on: amd64
   - build-on: arm64
 
 apps:
@@ -36,8 +36,11 @@ parts:
     build-snaps:
       - go
     build-packages:
+      - pkg-config
       - libopus-dev
       - libvpx-dev
+      - libx264-dev
     stage-packages:
       - libopus-dev
       - libvpx-dev
+      - libx264-dev
