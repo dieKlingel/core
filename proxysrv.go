@@ -58,15 +58,15 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 
 	client := mqtt.NewClient(options)
 	client.Connect()
+	defer client.Disconnect(0)
 
 	select {
 	case res := <-result:
 		writer.WriteHeader(res.StatusCode)
 		writer.Write([]byte(res.Body))
-	case <-time.After(30 * time.Second):
+	case <-time.After(10 * time.Second):
 		writer.WriteHeader(http.StatusNotFound)
 	}
-	client.Disconnect(0)
 }
 
 func httpRequestToMqttRequestPayload(req http.Request, answerChannel string) string {

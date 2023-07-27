@@ -14,6 +14,9 @@ type Config struct {
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
 	} `yaml:"mqtt"`
+	Gui struct {
+		Signs []Sign `yaml:"signs"`
+	} `yaml:"gui"`
 }
 
 func NewConfigFromCurrentDirectory() (*Config, error) {
