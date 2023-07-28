@@ -7,17 +7,13 @@ import (
 	"path"
 	"strings"
 
+	"github.com/dieklingel/core/internal/gmedia"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/pion/mediadevices"
-	"github.com/pion/mediadevices/pkg/codec/opus"
-	"github.com/pion/mediadevices/pkg/codec/vpx"
-	_ "github.com/pion/mediadevices/pkg/driver/camera"
-	_ "github.com/pion/mediadevices/pkg/driver/microphone"
+	"github.com/google/uuid"
 	"github.com/pion/webrtc/v3"
 )
 
-var connections map[string]*webrtc.PeerConnection = make(map[string]*webrtc.PeerConnection)
-var stream mediadevices.MediaStream
+var connections map[string]RTC = make(map[string]RTC)
 
 func RegisterRtcHandler(prefix string, client mqtt.Client) {
 	Register(client, path.Join(prefix, "connections"), onGetConnections)
@@ -43,36 +39,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection with id '%s' because a connection with this id already exists.", id), 409)
 	}
 
-	vpxParams, err := vpx.NewVP8Params()
-	if err != nil {
-		panic(err)
-	}
-	vpxParams.BitRate = 500_000 // 500kbps
-
-	opusParams, err := opus.NewParams()
-	if err != nil {
-		panic(err)
-	}
-	codecSelector := mediadevices.NewCodecSelector(
-		mediadevices.WithVideoEncoders(&vpxParams),
-		mediadevices.WithAudioEncoders(&opusParams),
-	)
-
-	// TODO: add shared GetUserMedia
-	stream, err = mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
-		Video: func(constraint *mediadevices.MediaTrackConstraints) {},
-		//Audio: func(mtc *mediadevices.MediaTrackConstraints) {},
-		Codec: codecSelector,
-	})
-	if err != nil {
-		return NewResponseFromString(fmt.Sprintf("error while opening media devices: %s", err.Error()), 500)
-	}
-
-	mediaEngine := webrtc.MediaEngine{}
-	codecSelector.Populate(&mediaEngine)
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(&mediaEngine))
-
-	peerConnection, err := api.NewPeerConnection(
+	peerConnection, err := webrtc.NewPeerConnection(
 		webrtc.Configuration{
 			ICEServers: []webrtc.ICEServer{
 				{
@@ -82,15 +49,41 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 			SDPSemantics: webrtc.SDPSemanticsUnifiedPlan,
 		},
 	)
+
+	rtc := RTC{
+		Connection: peerConnection,
+		Tracks:     make([]*webrtc.TrackLocalStaticSample, 0),
+	}
+
 	if err != nil {
 		peerConnection.Close()
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
 	}
 
-	for _, track := range stream.GetTracks() {
-		if _, err := peerConnection.AddTrack(track); err != nil {
-			log.Printf("cannot add track to connection: %s\r\n", err.Error())
-		}
+	firstVideoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "video/vp8"}, fmt.Sprintf("video-%s", uuid.New().String()), "pion2")
+	if err != nil {
+		panic(err)
+	}
+
+	rtc.Tracks = append(rtc.Tracks, firstVideoTrack)
+	gmedia.AddVideoTrack(firstVideoTrack)
+
+	_, err = peerConnection.AddTrack(firstVideoTrack)
+	if err != nil {
+		panic(err)
+	}
+
+	firstAudioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "audio/opus"}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion3")
+	if err != nil {
+		panic(err)
+	}
+
+	rtc.Tracks = append(rtc.Tracks, firstAudioTrack)
+	gmedia.AddAudioTrack(firstAudioTrack)
+
+	_, err = peerConnection.AddTrack(firstAudioTrack)
+	if err != nil {
+		panic(err)
 	}
 
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
@@ -130,7 +123,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		panic(err.Error())
 	}
 
-	connections[id] = peerConnection
+	connections[id] = rtc
 
 	return NewResponseFromString(string(json), 201)
 }
@@ -139,14 +132,13 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 	pathSegments := strings.Split(req.RequestPath, "/")
 	id := pathSegments[len(pathSegments)-1]
 
-	if stream != nil {
-		for _, track := range stream.GetTracks() {
-			defer track.Close()
-		}
-	}
+	if rtc, exists := connections[id]; exists {
+		rtc.Connection.Close()
+		for _, track := range rtc.Tracks {
+			gmedia.RemoveAudioTrack(track)
+			gmedia.RemoveVideoTrack(track)
 
-	if connection, exists := connections[id]; exists {
-		connection.Close()
+		}
 	}
 
 	return NewResponseFromString("", 200)
@@ -162,8 +154,8 @@ func onAddCandidate(client mqtt.Client, req Request) Response {
 		return NewResponseFromString(fmt.Sprintf("the canidate could not be parsed: %s", err.Error()), 400)
 	}
 
-	if connection, exists := connections[id]; exists {
-		if err := connection.AddICECandidate(*candidate); err != nil {
+	if rtc, exists := connections[id]; exists {
+		if err := rtc.Connection.AddICECandidate(*candidate); err != nil {
 			log.Printf("could not add candidate: %s", err.Error())
 			return NewResponseFromString(fmt.Sprintf("could not add the candidate: %s", err.Error()), 500)
 		}
