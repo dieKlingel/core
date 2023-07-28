@@ -42,7 +42,6 @@ func SetAudioSrc(src string) error {
 func AddAudioTrack(track *webrtc.TrackLocalStaticSample) {
 	audio.mutex.Lock()
 	audio.tracks[track.ID()] = track
-	println(len(audio.src))
 	if len(audio.tracks) == 1 && len(audio.src) != 0 {
 		openAudio()
 	}

@@ -42,7 +42,6 @@ func SetVideoSrc(src string) error {
 func AddVideoTrack(track *webrtc.TrackLocalStaticSample) {
 	video.mutex.Lock()
 	video.tracks[track.ID()] = track
-	println(len(video.src))
 	if len(video.tracks) == 1 && len(video.src) != 0 {
 		openVideo()
 	}
