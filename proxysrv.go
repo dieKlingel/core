@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -16,6 +18,11 @@ import (
 func RunProxy(port int) {
 	go func() {
 		http.HandleFunc("/proxy/", proxy)
+		staticDir := os.Getenv("DIEKLINGEL_STATIC_DIR")
+		if len(staticDir) != 0 {
+			log.Printf("serve static files from: %s", staticDir)
+			http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+		}
 		http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
 }
