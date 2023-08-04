@@ -61,7 +61,7 @@ func RemoveVideoTrack(track *webrtc.TrackLocalStaticSample) {
 func openVideo() {
 	video.loop = glib.NewMainLoop(glib.MainContextDefault(), false)
 
-	pipeline, err := gst.NewPipelineFromString(video.src + " ! videoconvert ! vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 ! appsink name=sink")
+	pipeline, err := gst.NewPipelineFromString(video.src + " ! appsink name=sink sync=false")
 	if err != nil {
 		panic(err.Error())
 	}

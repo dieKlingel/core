@@ -60,7 +60,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
 	}
 
-	firstVideoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "video/vp8"}, fmt.Sprintf("video-%s", uuid.New().String()), "pion2")
+	firstVideoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, fmt.Sprintf("video-%s", uuid.New().String()), "pion")
 	if err != nil {
 		panic(err)
 	}
