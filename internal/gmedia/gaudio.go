@@ -60,7 +60,7 @@ func RemoveAudioTrack(track *webrtc.TrackLocalStaticSample) {
 func openAudio() {
 	audio.loop = glib.NewMainLoop(glib.MainContextDefault(), false)
 
-	pipeline, err := gst.NewPipelineFromString(audio.src + " ! opusenc ! appsink name=sink1")
+	pipeline, err := gst.NewPipelineFromString(audio.src + " ! appsink name=sink")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -85,7 +85,7 @@ func openAudio() {
 		return true
 	})
 
-	si, er := pipeline.GetElementByName("sink1")
+	si, er := pipeline.GetElementByName("sink")
 	if er != nil {
 		panic(er.Error())
 	}
