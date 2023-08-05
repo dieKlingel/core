@@ -27,3 +27,9 @@ media:
   video-src: autovideosrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast
   audio-src: autoaudiosrc ! audioconvert ! opusenc
 ```
+
+## TODO
+
+- add libcamera support
+- gstreamer microphone
+- gstreamer audio output
