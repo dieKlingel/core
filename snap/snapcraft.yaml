@@ -29,9 +29,9 @@ apps:
       - pulseaudio
       - alsa
     environment:
-      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack
+      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/
       DIEKLINGEL_HOME: "$SNAP_USER_COMMON"
-      GST_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
+      GST_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
       GST_PLUGIN_SCANNER: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner 
 
 parts:
@@ -42,6 +42,8 @@ parts:
       - go
     build-packages:
       - pkg-config
+#      - libgtk-3-0
+      - libgtk-3-dev # libgio-2.0.a(giomodule.c.o): undefined reference to symbol 'g_module_open_full'
       - libgstreamer1.0-dev
       - libgstreamer-plugins-base1.0-dev
     stage-packages:
@@ -62,3 +64,22 @@ parts:
       - gstreamer1.0-qt5
       - gstreamer1.0-pulseaudio
       
+  libcamera:
+    plugin: meson
+    source: https://github.com/raspberrypi/libcamera.git
+    build-packages:
+      - libsnapd-glib-dev
+      - libglib2.0-dev
+      - libffi-dev
+      - clang
+#      - meson
+#      - ninja-build
+      - pkg-config
+      - libyaml-dev
+      - python3-yaml
+      - python3-ply
+      - python3-jinja2
+      - libgnutls28-dev
+      - libudev-dev
+      - libgstreamer1.0-dev
+      - libgstreamer-plugins-base1.0-dev
