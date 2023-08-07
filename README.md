@@ -1,31 +1,51 @@
 # dieKlingel Core
 
-## Install
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/dieklingel-core)
 
-1. install go
+This repository contains the core application for the dieKlinge project. The core covers features like peer to peer connection through webrtc, storing devices and executing actions to notify you if someone rings your bell. The core is designed to be configurable so that it could be integrated into a smarthome system like fhem. The communication. The startup configuration is set throug a config file. After startup the communcation with core takes place over mqtt or in some cases http. Just install the core on a raspberry pi and run it.
 
-   <https://go.dev/doc/install>
+## Getting Started
 
-2. dependencies:
+Install the latest build from snapcraft
 
-   ```bash
-   sudo apt-get install libgtk-3-dev
-   ```
+```bash
+sudo snap install dieklingel-core
+```
 
-   ```bash
-   sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
-   ```
+Configure the core
 
-## Config
+```bash
+sudo set install dieklingel-core core="
+actions:
+  - trigger: ring
+    lane: python3 ./scripts/push-notification.py
+  - trigger: unlock2
+    lane: |
+     touch hallo.txt
+     echo unlock2 > hallo.txt 
 
-### Media
-
-Sample media config:
-
-```yaml
 media:
   video-src: autovideosrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast
   audio-src: autoaudiosrc ! audioconvert ! opusenc
+
+mqtt:
+  uri: mqtt://server.dieklingel.com:1883/dieklingel/mayer/kai/
+  username: ''
+  password: ''
+
+rtc:
+  ice-servers:
+    - urls: stun:stun1.l.google.com:19302
+    - urls: stun:stun1.l.google.com:19302
+      username: adsa
+      credentials: ada
+"
+```
+
+Run the core
+
+```bash
+sudo snap set dieklingel-core daemon=true
 ```
 
 ## TODO
