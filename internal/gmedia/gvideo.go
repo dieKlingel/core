@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
@@ -110,7 +111,7 @@ func openVideo() {
 			for _, track := range video.tracks {
 				track.WriteSample(media.Sample{
 					Data:     buffer.Bytes(),
-					Duration: buffer.Duration(),
+					Duration: 1 * time.Millisecond,
 				})
 			}
 

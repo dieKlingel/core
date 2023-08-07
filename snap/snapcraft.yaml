@@ -28,11 +28,21 @@ apps:
       - audio-record 
       - pulseaudio
       - alsa
+      - hardware-observe
+      - media-control
+    extensions:
+      - gnome
     environment:
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/
       DIEKLINGEL_HOME: $SNAP_DATA
       GST_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
       GST_PLUGIN_SCANNER: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner 
+
+layout:
+  /usr/local/lib/aarch64-linux-gnu/libcamera:
+    bind: $SNAP/usr/local/lib/aarch64-linux-gnu/libcamera
+  /usr/local/share/libcamera:
+    bind: $SNAP/usr/local/share/libcamera
 
 parts:
   dieklingel-core:
@@ -40,16 +50,15 @@ parts:
     source: .
     build-snaps:
       - go
-    override-build: |
-      export LDFLAGS="-Wl,--copy-dt-needed-entries"
-      snapcraftctl build
     build-packages:
-      - libglib2.0-dev
-      - pkg-config
-      - libgtk-3-0
-      - libgtk-3-dev # libgio-2.0.a(giomodule.c.o): undefined reference to symbol 'g_module_open_full'
-      - libgstreamer1.0-dev
-      - libgstreamer-plugins-base1.0-dev
+#      - libglib2.0-dev
+#      - pkg-config
+      - libffi7
+      - libffi-dev
+#      - libgtk-3-0
+#      - libgtk-3-dev # libgio-2.0.a(giomodule.c.o): undefined reference to symbol 'g_module_open_full'
+#      - libgstreamer1.0-dev
+#      - libgstreamer-plugins-base1.0-dev
     stage-packages:
       - libdw-dev
       - libgstreamer1.0-0
