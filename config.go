@@ -17,6 +17,10 @@ type Config struct {
 	Gui struct {
 		Signs []Sign `yaml:"signs"`
 	} `yaml:"gui"`
+	Media struct {
+		VideoSrc string `yaml:"video-src"`
+		AudioSrc string `yaml:"audio-src"`
+	} `yamle:"media"`
 }
 
 func NewConfigFromCurrentDirectory() (*Config, error) {

@@ -1,0 +1,58 @@
+# This file sould be located at $HOME/dieklingel/config.yaml. It is used for
+# the shared standartd settings for all packages. This is a sample
+# configuration, which explains every propertie.
+
+
+actions:
+  - trigger: ring
+    lane: python3 ./scripts/push-notification.py
+  - trigger: unlock2
+    lane: |
+     touch hallo.txt
+     echo unlock2 > hallo.txt 
+
+media:
+  video-src: autovideosrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast
+  audio-src: autoaudiosrc ! audioconvert ! opusenc
+
+mqtt:
+  uri: mqtt://server.dieklingel.com:1883/dieklingel/mayer/kai/
+  username: ''
+  password: ''
+
+http:
+  port: 8081
+
+gui:
+  timeout: 30
+  viewport:
+    clip:
+      top: 15
+      right: 35
+      bottom: 10
+      left: 10
+  # configuration for signs displayed on the main page
+  signs:
+    - name: default
+      interface: files/sign.rfwtxt
+      audio: files/bell.wav
+    - name: default2
+      interface: files/sign.rfwtxt
+      audio: files/bell.wav
+  screensaver:
+    # timeout in seconds when the screen will switch to inactive state
+    timeout: 10
+    enabled: true
+    file: /abs/path/file.<lottie>|<.json>|<.html>|<.png>|<.jpeg>|<.jpg>
+
+rtc:
+  ice-servers:
+    - urls: stun:stun1.l.google.com:19302
+    - urls: stun:stun1.l.google.com:19302
+      username: adsa
+      credentials: ada
+
+apn:
+  url: https://fcm-worker.dieklingel.workers.dev/fcm/send
+  title: 'Jemand steht vor deiner Tuer!' 
+  body: '{DAY}-{MONTH}-{YEAR} {HOUR}:{MINUTE}:{SECOND}'

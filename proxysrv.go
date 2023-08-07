@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -15,12 +17,25 @@ import (
 
 func RunProxy(port int) {
 	go func() {
-		http.HandleFunc("/", proxy)
+		http.HandleFunc("/proxy/", proxy)
+		staticDir := os.Getenv("DIEKLINGEL_STATIC_DIR")
+		if len(staticDir) != 0 {
+			log.Printf("serve static files from: %s", staticDir)
+			http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+		}
 		http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
 }
 
 func proxy(writer http.ResponseWriter, req *http.Request) {
+	writer.Header().Add("Access-Control-Allow-Origin", "*")
+	writer.Header().Add("Access-Control-Allow-Methods", "*")
+	writer.Header().Add("Access-Control-Allow-Headers", "*")
+	if req.Method == "OPTIONS" {
+		writer.WriteHeader(http.StatusOK)
+		return
+	}
+
 	id := uuid.New()
 	config, err := NewConfigFromCurrentDirectory()
 	if err != nil {
@@ -45,15 +60,15 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 	options.SetPassword(strings.Join(req.Header["Password"], ""))
 	options.SetAutoReconnect(false)
 	options.OnConnect = func(c mqtt.Client) {
-		subTopic := path.Join("./", req.URL.Path, answerChannel.String())
+		subTopic := strings.TrimPrefix(path.Join("./", req.URL.Path, answerChannel.String()), "proxy/")
 		c.Subscribe(subTopic, 2, func(c mqtt.Client, m mqtt.Message) {
 			response := NewEmptyResponse()
 			json.Unmarshal(m.Payload(), &response)
 			result <- response
 		})
 
-		pubTopic := path.Join("./", req.URL.Path)
-		c.Publish(pubTopic, 2, false, httpRequestToMqttRequestPayload(*req, answerChannel.String()))
+		pubTopic := strings.TrimPrefix(path.Join("./", req.URL.Path), "proxy/")
+		c.Publish(pubTopic, 2, false, httpRequestToMqttRequestPayload(req, answerChannel.String()))
 	}
 
 	client := mqtt.NewClient(options)
@@ -73,9 +88,13 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func httpRequestToMqttRequestPayload(req http.Request, answerChannel string) string {
+func httpRequestToMqttRequestPayload(req *http.Request, answerChannel string) string {
 	request := Request{}
-	req.Body.Read([]byte(request.Body))
+
+	bytes := make([]byte, req.ContentLength)
+	req.Body.Read(bytes)
+	request.Body = string(bytes)
+
 	request.Method = req.Method
 	request.Headers = make(map[string]string)
 	request.Headers["mqtt_answer_channel"] = answerChannel
