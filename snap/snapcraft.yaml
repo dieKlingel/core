@@ -16,7 +16,7 @@ architectures:
   - build-on: arm64
 
 apps:
-  core:
+  dieklingel-core:
     daemon: simple
     restart-delay: 3s
     restart-condition: always
@@ -35,22 +35,26 @@ apps:
       GST_PLUGIN_SCANNER: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner 
 
 parts:
-  core:
+  dieklingel-core:
     plugin: go
     source: .
     build-snaps:
       - go
+    override-build: |
+      export LDFLAGS="-Wl,--copy-dt-needed-entries"
+      snapcraftctl build
     build-packages:
+      - libglib2.0-dev
       - pkg-config
-#      - libgtk-3-0
+      - libgtk-3-0
       - libgtk-3-dev # libgio-2.0.a(giomodule.c.o): undefined reference to symbol 'g_module_open_full'
       - libgstreamer1.0-dev
       - libgstreamer-plugins-base1.0-dev
     stage-packages:
       - libdw-dev
-      - libgstreamer1.0-dev
-      - libgstreamer-plugins-base1.0-dev
-      - libgstreamer-plugins-bad1.0-dev
+      - libgstreamer1.0-0
+      - libgstreamer-plugins-base1.0-0
+      - libgstreamer-plugins-bad1.0-0
       - gstreamer1.0-plugins-base
       - gstreamer1.0-plugins-good
       - gstreamer1.0-plugins-bad
@@ -72,8 +76,8 @@ parts:
       - libglib2.0-dev
       - libffi-dev
       - clang
-#      - meson
-#      - ninja-build
+      - meson
+      - ninja-build
       - pkg-config
       - libyaml-dev
       - python3-yaml
