@@ -30,7 +30,7 @@ apps:
       - alsa
     environment:
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/
-      DIEKLINGEL_HOME: "$SNAP_USER_COMMON"
+      DIEKLINGEL_HOME: $SNAP_DATA
       GST_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
       GST_PLUGIN_SCANNER: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner 
 
