@@ -111,7 +111,7 @@ func openVideo() {
 			for _, track := range video.tracks {
 				track.WriteSample(media.Sample{
 					Data:     buffer.Bytes(),
-					Duration: 1 * time.Millisecond,
+					Duration: 1 * time.Millisecond, // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
 				})
 			}
 
