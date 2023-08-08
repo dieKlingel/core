@@ -25,7 +25,7 @@ actions:
      echo unlock2 > hallo.txt 
 
 media:
-  video-src: autovideosrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast
+  video-src: autovideosrc ! video/x-raw, width=1280, height=720, framerate=30/1 ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast
   audio-src: autoaudiosrc ! audioconvert ! opusenc
 
 mqtt:
@@ -51,5 +51,4 @@ sudo snap set dieklingel-core daemon=true
 ## TODO
 
 - add libcamera support
-- gstreamer microphone
 - gstreamer audio output
