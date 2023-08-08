@@ -21,7 +21,7 @@ func RegisterDeviceHandler(prefix string, client mqtt.Client) {
 }
 
 func onDevices(client mqtt.Client, req Request) Response {
-	db, err := clover.Open("storage")
+	db, err := clover.Open("")
 
 	if err != nil {
 		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
@@ -62,7 +62,7 @@ func onCreateDevice(client mqtt.Client, req Request) Response {
 		return NewResponseFromString("the token cannot be empty", 400)
 	}
 
-	db, err := clover.Open("storage")
+	db, err := clover.Open("")
 	if err != nil {
 		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}
@@ -100,7 +100,7 @@ func onUpdateDevice(client mqtt.Client, req Request) Response {
 		return NewResponseFromString("the token cannot be empty", 400)
 	}
 
-	db, err := clover.Open("storage")
+	db, err := clover.Open("")
 	if err != nil {
 		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}
@@ -121,7 +121,7 @@ func onDeleteDevice(client mqtt.Client, req Request) Response {
 	pathSegments := strings.Split(req.RequestPath, "/")
 	token := pathSegments[len(pathSegments)-1]
 
-	db, err := clover.Open("storage")
+	db, err := clover.Open("")
 	if err != nil {
 		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
 	}

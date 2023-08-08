@@ -109,6 +109,7 @@ parts:
       - ninja-build
       - pkg-config
       - libyaml-dev
+      - libtiff5-dev
 #      - python3-yaml
 #      - python3-ply
 #      - python3-jinja2
