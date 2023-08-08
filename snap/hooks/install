@@ -1,6 +1,11 @@
 #!/bin/sh
 set -x
 
+if [ "$(snapctl get core)" = "" ]
+then
+  snapctl set core="$(cat $SNAP_DATA/core.yaml)"
+fi
+
 if [ "$(snapctl get daemon)" = "" ]
 then
   if grep -q -e snap_core= -e snapd_recovery_mode= /proc/cmdline

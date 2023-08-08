@@ -17,6 +17,26 @@ architectures:
 
 apps:
   dieklingel-core:
+    command: bin/core
+    plugs:
+      - network
+      - camera
+      - audio-playback
+      - audio-record 
+      - pulseaudio
+      - alsa
+      - vcio
+      - hardware-observe
+      - media-control # used by libcamera
+    environment:
+      LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/
+      DIEKLINGEL_HOME: $SNAP_DATA
+#      GST_PLUGIN_PATH: $GST_PLUGIN_PATH:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
+      GST_PLUGIN_SCANNER: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner 
+    extensions:
+      - gnome
+
+  daemon:
     daemon: simple
     restart-delay: 3s
     restart-condition: always
@@ -28,11 +48,21 @@ apps:
       - audio-record 
       - pulseaudio
       - alsa
+      - hardware-observe
+      - media-control
     environment:
       LD_LIBRARY_PATH: $LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/
-      DIEKLINGEL_HOME: "$SNAP_USER_COMMON"
-      GST_PLUGIN_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
+      DIEKLINGEL_HOME: $SNAP_DATA
+#      GST_PLUGIN_PATH: $GST_PLUGIN_PATH:$SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0
       GST_PLUGIN_SCANNER: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner 
+    extensions:
+      - gnome
+
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libcamera:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libcamera
+  /usr/share/libcamera:
+    bind: $SNAP/usr/share/libcamera
 
 parts:
   dieklingel-core:
@@ -40,16 +70,15 @@ parts:
     source: .
     build-snaps:
       - go
-    override-build: |
-      export LDFLAGS="-Wl,--copy-dt-needed-entries"
-      snapcraftctl build
     build-packages:
-      - libglib2.0-dev
-      - pkg-config
-      - libgtk-3-0
-      - libgtk-3-dev # libgio-2.0.a(giomodule.c.o): undefined reference to symbol 'g_module_open_full'
-      - libgstreamer1.0-dev
-      - libgstreamer-plugins-base1.0-dev
+#      - libglib2.0-dev
+#      - pkg-config
+      - libffi7
+      - libffi-dev
+#      - libgtk-3-0
+#      - libgtk-3-dev # libgio-2.0.a(giomodule.c.o): undefined reference to symbol 'g_module_open_full'
+#      - libgstreamer1.0-dev
+#      - libgstreamer-plugins-base1.0-dev
     stage-packages:
       - libdw-dev
       - libgstreamer1.0-0
@@ -80,10 +109,19 @@ parts:
       - ninja-build
       - pkg-config
       - libyaml-dev
-      - python3-yaml
-      - python3-ply
-      - python3-jinja2
+      - libtiff5-dev
+#      - python3-yaml
+#      - python3-ply
+#      - python3-jinja2
       - libgnutls28-dev
       - libudev-dev
       - libgstreamer1.0-dev
       - libgstreamer-plugins-base1.0-dev
+    override-build: |
+      pip install pyyaml
+      pip install Jinja2
+      pip install ply
+
+      snapcraftctl build
+    meson-parameters:
+      - --prefix=/usr

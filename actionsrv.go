@@ -71,9 +71,17 @@ func ExecuteActionsFromPattern(pattern string, environment map[string]string) []
 		match := regex.MatchString(action.Trigger)
 		if match {
 			actions = append(actions, action)
-			if err := exec.Command("bash", "-c", action.Lane).Run(); err != nil {
+			command := exec.Command("bash", "-c", action.Lane)
+
+			for key, value := range environment {
+				command.Env = append(command.Env, fmt.Sprintf("%s=%s", key, value))
+			}
+
+			output, err := command.Output()
+			if err != nil {
 				log.Printf("error while running action: %s", err.Error())
 			}
+			log.Printf("action output is:\r\n+---+\r\n%s+---+", string(output))
 		}
 	}
 

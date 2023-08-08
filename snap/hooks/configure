@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+core="$(snapctl get core)"
+echo "$core" > $SNAP_DATA/core.yaml
+
 daemon=$(snapctl get daemon)
 case "$daemon" in
   true)
