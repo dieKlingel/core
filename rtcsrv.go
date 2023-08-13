@@ -43,12 +43,16 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 
 	if audiosrc == nil {
 		audiosrc = gmedia.NewAudioSrc(config.Media.AudioSrc)
-		audiosrc.Open()
+		if err := audiosrc.Open(); err != nil {
+			log.Printf("Cannot open audiosrc: %s", err.Error())
+		}
 	}
 
 	if videosrc == nil {
 		videosrc = gmedia.NewVideoSrc(config.Media.VideoSrc)
-		videosrc.Open()
+		if err := videosrc.Open(); err != nil {
+			log.Printf("Cannot open videosrc: %s", err.Error())
+		}
 	}
 
 	peerConnection, err := webrtc.NewPeerConnection(
@@ -73,28 +77,35 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
 	}
 
-	firstVideoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, fmt.Sprintf("video-%s", uuid.New().String()), "pion")
-	if err != nil {
-		panic(err)
+	if videosrc.IsOpen() {
+		firstVideoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, fmt.Sprintf("video-%s", uuid.New().String()), "pion")
+		if err != nil {
+			panic(err)
+		}
+		rtc.VideoTracks = append(rtc.VideoTracks, firstVideoTrack)
+		videosrc.AddH264VideoTrack(firstVideoTrack)
+		_, err = peerConnection.AddTrack(firstVideoTrack)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		log.Print("start connection without video, because the videosrc is not opened")
 	}
 
-	rtc.VideoTracks = append(rtc.VideoTracks, firstVideoTrack)
-	videosrc.AddH264VideoTrack(firstVideoTrack)
-	_, err = peerConnection.AddTrack(firstVideoTrack)
-	if err != nil {
-		panic(err)
-	}
+	if audiosrc.IsOpen() {
+		firstAudioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "audio/opus"}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion3")
+		if err != nil {
+			panic(err)
+		}
 
-	firstAudioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "audio/opus"}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion3")
-	if err != nil {
-		panic(err)
-	}
-
-	rtc.AudioTracks = append(rtc.AudioTracks, firstAudioTrack)
-	audiosrc.AddOpusAudioTrack(firstAudioTrack)
-	_, err = peerConnection.AddTrack(firstAudioTrack)
-	if err != nil {
-		panic(err)
+		rtc.AudioTracks = append(rtc.AudioTracks, firstAudioTrack)
+		audiosrc.AddOpusAudioTrack(firstAudioTrack)
+		_, err = peerConnection.AddTrack(firstAudioTrack)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		log.Print("start connection without audio, because the audiosrc is not opened")
 	}
 
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
@@ -118,7 +129,6 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 				log.Printf("cannot open audiosink: %s", err.Error())
 			}
 		}
-		// TODO: play stream, if audio
 	})
 
 	var offer *webrtc.SessionDescription = &webrtc.SessionDescription{}

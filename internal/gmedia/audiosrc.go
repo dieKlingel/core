@@ -113,3 +113,7 @@ func (src *AudioSrc) Close() {
 func (src *AudioSrc) Tracks() []*webrtc.TrackLocalStaticSample {
 	return maps.Values(src.tracks)
 }
+
+func (src *AudioSrc) IsOpen() bool {
+	return src.loop != nil
+}

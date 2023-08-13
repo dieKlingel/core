@@ -11,7 +11,7 @@ actions:
       echo unlock2 > hallo.txt
 
 media:
-  video-src: autovideosrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! appsink name=h264sink
+  video-src: videotestsrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! appsink name=h264sink
   audio-src: autoaudiosrc ! audioconvert ! opusenc ! appsink name=opussink
   audio-sink: appsrc format=time do-timestamp=true name=opussrc ! application/x-rtp, payload=127, encoding-name=OPUS ! rtpopusdepay ! decodebin ! autoaudiosink
 

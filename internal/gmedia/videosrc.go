@@ -114,3 +114,7 @@ func (src *VideoSrc) Close() {
 func (src *VideoSrc) Tracks() []*webrtc.TrackLocalStaticSample {
 	return maps.Values(src.tracks)
 }
+
+func (src *VideoSrc) IsOpen() bool {
+	return src.loop != nil
+}
