@@ -38,7 +38,6 @@ func (sink *RemoteAudioSink) Open() error {
 	pipeline.GetPipelineBus().AddWatch(func(msg *gst.Message) bool {
 		switch msg.Type() {
 		case gst.MessageEOS: // When end-of-stream is received flush the pipeling and stop the main loop
-			print("EOS")
 			pipeline.BlockSetState(gst.StateNull)
 			sink.loop.Quit()
 		case gst.MessageError: // Error messages are always fatal
@@ -83,7 +82,6 @@ func (sink *RemoteAudioSink) Open() error {
 	sink.loop = loop
 
 	go sink.loop.Run()
-	print("started")
 	return nil
 }
 

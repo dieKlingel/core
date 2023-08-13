@@ -52,4 +52,3 @@ sudo snap set dieklingel-core daemon=true
 ## TODO
 
 - add libcamera support
-- gstreamer audio output

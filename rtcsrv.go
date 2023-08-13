@@ -113,7 +113,6 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	peerConnection.OnTrack(func(track *webrtc.TrackRemote, r *webrtc.RTPReceiver) {
 		fmt.Printf("Track has started, of type %d: %s \n", track.PayloadType(), track.Codec().MimeType)
 		if track.Kind() == webrtc.RTPCodecTypeAudio {
-			print(rtc)
 			rtc.RemoteAudioSink = gmedia.NewRemoteAudioSink(config.Media.AudioSink, track)
 			if err := rtc.RemoteAudioSink.Open(); err != nil {
 				log.Printf("cannot open audiosink: %s", err.Error())
@@ -159,11 +158,7 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 			audiosrc.RemoveOpusAudioTrack(track)
 		}
 
-		if rtc.RemoteAudioSink != nil {
-			rtc.RemoteAudioSink.Close()
-		} else {
-			print("was null")
-		}
+		rtc.RemoteAudioSink.Close()
 	}
 
 	if len(videosrc.Tracks()) == 0 {
