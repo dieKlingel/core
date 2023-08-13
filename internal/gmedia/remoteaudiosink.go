@@ -52,7 +52,7 @@ func (sink *RemoteAudioSink) Open() error {
 			//println(msg.String())
 			// All messages implement a Stringer. However, this is
 			// typically an expensive thing to do and should be avoided.
-			fmt.Println(msg)
+			// fmt.Println(msg)
 		}
 		return true
 	})
