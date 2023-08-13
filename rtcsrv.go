@@ -14,6 +14,7 @@ import (
 )
 
 var connections map[string]RTC = make(map[string]RTC)
+var videosrc *gmedia.VideoSrc
 
 func RegisterRtcHandler(prefix string, client mqtt.Client) {
 	Register(client, path.Join(prefix, "connections"), onGetConnections)
@@ -37,6 +38,11 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 
 	if _, exists := connections[id]; exists {
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection with id '%s' because a connection with this id already exists.", id), 409)
+	}
+
+	if videosrc == nil {
+		videosrc = gmedia.NewVideoSrc(config.Media.VideoSrc)
+		videosrc.Open()
 	}
 
 	peerConnection, err := webrtc.NewPeerConnection(
@@ -66,8 +72,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	}
 
 	rtc.Tracks = append(rtc.Tracks, firstVideoTrack)
-	gmedia.AddVideoTrack(firstVideoTrack)
-
+	videosrc.AddH264VideoTrack(firstVideoTrack)
 	_, err = peerConnection.AddTrack(firstVideoTrack)
 	if err != nil {
 		panic(err)
@@ -135,10 +140,14 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 	if rtc, exists := connections[id]; exists {
 		rtc.Connection.Close()
 		for _, track := range rtc.Tracks {
+			videosrc.RemoveH264VideoTrack(track)
 			gmedia.RemoveAudioTrack(track)
-			gmedia.RemoveVideoTrack(track)
-
 		}
+	}
+
+	if len(videosrc.Tracks()) == 0 {
+		videosrc.Close()
+		videosrc = nil
 	}
 
 	return NewResponseFromString("", 200)

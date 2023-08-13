@@ -1,6 +1,6 @@
 module github.com/dieklingel/core
 
-go 1.13
+go 1.18
 
 require (
 	github.com/google/uuid v1.3.0
@@ -61,5 +61,6 @@ require (
 	github.com/tinyzimmer/go-glib v0.0.25
 	github.com/tinyzimmer/go-gst v0.2.33
 	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
 	golang.org/x/net v0.10.0 // indirect
 )
