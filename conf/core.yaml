@@ -12,7 +12,7 @@ actions:
 
 media:
   video-src: autovideosrc ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! appsink name=h264sink
-  audio-src: autoaudiosrc ! audioconvert ! opusenc
+  audio-src: autoaudiosrc ! audioconvert ! opusenc ! appsink name=opussink
   audio-sink: appsrc name=opussrc ! opusdec ! autoaudiosink
 
 mqtt:

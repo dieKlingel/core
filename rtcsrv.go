@@ -15,6 +15,7 @@ import (
 
 var connections map[string]RTC = make(map[string]RTC)
 var videosrc *gmedia.VideoSrc
+var audiosrc *gmedia.AudioSrc
 
 func RegisterRtcHandler(prefix string, client mqtt.Client) {
 	Register(client, path.Join(prefix, "connections"), onGetConnections)
@@ -40,6 +41,11 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection with id '%s' because a connection with this id already exists.", id), 409)
 	}
 
+	if audiosrc == nil {
+		audiosrc = gmedia.NewAudioSrc(config.Media.AudioSrc)
+		audiosrc.Open()
+	}
+
 	if videosrc == nil {
 		videosrc = gmedia.NewVideoSrc(config.Media.VideoSrc)
 		videosrc.Open()
@@ -57,8 +63,9 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	)
 
 	rtc := RTC{
-		Connection: peerConnection,
-		Tracks:     make([]*webrtc.TrackLocalStaticSample, 0),
+		Connection:  peerConnection,
+		VideoTracks: make([]*webrtc.TrackLocalStaticSample, 0),
+		AudioTracks: make([]*webrtc.TrackLocalStaticSample, 0),
 	}
 
 	if err != nil {
@@ -71,7 +78,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		panic(err)
 	}
 
-	rtc.Tracks = append(rtc.Tracks, firstVideoTrack)
+	rtc.VideoTracks = append(rtc.VideoTracks, firstVideoTrack)
 	videosrc.AddH264VideoTrack(firstVideoTrack)
 	_, err = peerConnection.AddTrack(firstVideoTrack)
 	if err != nil {
@@ -83,9 +90,8 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		panic(err)
 	}
 
-	rtc.Tracks = append(rtc.Tracks, firstAudioTrack)
-	gmedia.AddAudioTrack(firstAudioTrack)
-
+	rtc.AudioTracks = append(rtc.AudioTracks, firstAudioTrack)
+	audiosrc.AddOpusAudioTrack(firstAudioTrack)
 	_, err = peerConnection.AddTrack(firstAudioTrack)
 	if err != nil {
 		panic(err)
@@ -139,15 +145,22 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 
 	if rtc, exists := connections[id]; exists {
 		rtc.Connection.Close()
-		for _, track := range rtc.Tracks {
+		for _, track := range rtc.VideoTracks {
 			videosrc.RemoveH264VideoTrack(track)
-			gmedia.RemoveAudioTrack(track)
+		}
+		for _, track := range rtc.AudioTracks {
+			audiosrc.RemoveOpusAudioTrack(track)
 		}
 	}
 
 	if len(videosrc.Tracks()) == 0 {
 		videosrc.Close()
 		videosrc = nil
+	}
+
+	if len(audiosrc.Tracks()) == 0 {
+		audiosrc.Close()
+		audiosrc = nil
 	}
 
 	return NewResponseFromString("", 200)

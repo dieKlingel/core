@@ -3,80 +3,60 @@ package gmedia
 import (
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/tinyzimmer/go-glib/glib"
 	"github.com/tinyzimmer/go-gst/gst"
 	"github.com/tinyzimmer/go-gst/gst/app"
+	"golang.org/x/exp/maps"
 )
 
-type gaudio struct {
+type AudioSrc struct {
 	src      string
 	tracks   map[string]*webrtc.TrackLocalStaticSample
-	mutex    sync.Mutex
 	loop     *glib.MainLoop
 	pipeline *gst.Pipeline
 }
 
-var audio = gaudio{
-	tracks: make(map[string]*webrtc.TrackLocalStaticSample, 0),
-}
-
-func init() {
-	gst.Init(nil)
-}
-
-func SetAudioSrc(src string) error {
-	if len(audio.src) != 0 {
-		return errors.New("cannot set audiosrc if already set")
+func NewAudioSrc(pipeline string) *AudioSrc {
+	return &AudioSrc{
+		src:    pipeline,
+		tracks: make(map[string]*webrtc.TrackLocalStaticSample),
 	}
-	audio.src = src
-	if len(audio.tracks) > 0 {
-		openAudio()
-	}
-	return nil
 }
 
-func AddAudioTrack(track *webrtc.TrackLocalStaticSample) {
-	audio.mutex.Lock()
-	audio.tracks[track.ID()] = track
-	if len(audio.tracks) == 1 && len(audio.src) != 0 {
-		openAudio()
-	}
-	audio.mutex.Unlock()
+func (src *AudioSrc) AddOpusAudioTrack(track *webrtc.TrackLocalStaticSample) {
+	src.tracks[track.ID()] = track
 }
 
-func RemoveAudioTrack(track *webrtc.TrackLocalStaticSample) {
-	audio.mutex.Lock()
-	delete(audio.tracks, track.ID())
-	if len(audio.tracks) == 0 {
-		closeAudio()
-	}
-	audio.mutex.Unlock()
+func (src *AudioSrc) RemoveOpusAudioTrack(track *webrtc.TrackLocalStaticSample) {
+	delete(src.tracks, track.ID())
 }
 
-func openAudio() {
-	audio.loop = glib.NewMainLoop(glib.MainContextDefault(), false)
+func (src *AudioSrc) Open() error {
+	if src.loop != nil {
+		return errors.New("cannot open a Audio, when it is already running")
+	}
 
-	pipeline, err := gst.NewPipelineFromString(audio.src + " ! appsink name=sink")
+	loop := glib.NewMainLoop(glib.MainContextDefault(), false)
+	pipeline, err := gst.NewPipelineFromString(src.src)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	pipeline.GetPipelineBus().AddWatch(func(msg *gst.Message) bool {
 		switch msg.Type() {
 		case gst.MessageEOS: // When end-of-stream is received flush the pipeling and stop the main loop
 			pipeline.BlockSetState(gst.StateNull)
-			audio.loop.Quit()
+			src.loop.Quit()
 		case gst.MessageError: // Error messages are always fatal
 			err := msg.ParseError()
 			fmt.Println("ERROR:", err.Error())
 			if debug := err.DebugString(); debug != "" {
 				fmt.Println("DEBUG:", debug)
 			}
-			audio.loop.Quit()
+			src.loop.Quit()
 		default:
 			// All messages implement a Stringer. However, this is
 			// typically an expensive thing to do and should be avoided.
@@ -85,19 +65,15 @@ func openAudio() {
 		return true
 	})
 
-	si, er := pipeline.GetElementByName("sink")
-	if er != nil {
-		panic(er.Error())
-	}
-
-	sink := app.SinkFromElement(si)
+	opusSinkElement, err := pipeline.GetElementByName("opussink")
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
+	opusSink := app.SinkFromElement(opusSinkElement)
 
-	sink.SetCallbacks(&app.SinkCallbacks{
+	opusSink.SetCallbacks(&app.SinkCallbacks{
 		NewSampleFunc: func(appSink *app.Sink) gst.FlowReturn {
-			sample := sink.PullSample()
+			sample := opusSink.PullSample()
 			if sample == nil {
 				return gst.FlowEOS
 			}
@@ -106,7 +82,7 @@ func openAudio() {
 				return gst.FlowError
 			}
 
-			for _, track := range audio.tracks {
+			for _, track := range src.tracks {
 				track.WriteSample(media.Sample{
 					Data:     buffer.Bytes(),
 					Duration: buffer.Duration(),
@@ -119,16 +95,21 @@ func openAudio() {
 
 	// Start the pipeline
 	pipeline.SetState(gst.StatePlaying)
-	audio.pipeline = pipeline
+	src.pipeline = pipeline
+	src.loop = loop
 
-	// Block and iterate on the main loop
-	go audio.loop.Run()
+	go src.loop.Run()
+	return nil
 }
 
-func closeAudio() {
-	if audio.pipeline == nil {
+func (src *AudioSrc) Close() {
+	if src.loop == nil {
 		return
 	}
-	audio.pipeline.SetState(gst.StateNull)
-	audio.loop.Quit()
+	src.pipeline.BlockSetState(gst.StateNull)
+	src.loop.Quit()
+}
+
+func (src *AudioSrc) Tracks() []*webrtc.TrackLocalStaticSample {
+	return maps.Values(src.tracks)
 }
