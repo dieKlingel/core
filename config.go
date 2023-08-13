@@ -18,8 +18,9 @@ type Config struct {
 		Signs []Sign `yaml:"signs"`
 	} `yaml:"gui"`
 	Media struct {
-		VideoSrc string `yaml:"video-src"`
-		AudioSrc string `yaml:"audio-src"`
+		VideoSrc  string `yaml:"video-src"`
+		AudioSrc  string `yaml:"audio-src"`
+		AudioSink string `yaml:"audio-sink"`
 	} `yamle:"media"`
 }
 

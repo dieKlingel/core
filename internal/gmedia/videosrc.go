@@ -3,7 +3,6 @@ package gmedia
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/pion/webrtc/v3"
@@ -11,74 +10,54 @@ import (
 	"github.com/tinyzimmer/go-glib/glib"
 	"github.com/tinyzimmer/go-gst/gst"
 	"github.com/tinyzimmer/go-gst/gst/app"
+	"golang.org/x/exp/maps"
 )
 
-type gvideo struct {
+type VideoSrc struct {
 	src      string
 	tracks   map[string]*webrtc.TrackLocalStaticSample
-	mutex    sync.Mutex
 	loop     *glib.MainLoop
 	pipeline *gst.Pipeline
 }
 
-var video = gvideo{
-	tracks: make(map[string]*webrtc.TrackLocalStaticSample, 0),
-}
-
-func init() {
-	gst.Init(nil)
-}
-
-func SetVideoSrc(src string) error {
-	if len(video.src) != 0 {
-		return errors.New("cannot set videosrc if already set")
+func NewVideoSrc(pipeline string) *VideoSrc {
+	return &VideoSrc{
+		src:    pipeline,
+		tracks: make(map[string]*webrtc.TrackLocalStaticSample),
 	}
-	video.src = src
-	if len(video.tracks) > 0 {
-		openVideo()
-	}
-	return nil
 }
 
-func AddVideoTrack(track *webrtc.TrackLocalStaticSample) {
-	video.mutex.Lock()
-	video.tracks[track.ID()] = track
-	if len(video.tracks) == 1 && len(video.src) != 0 {
-		openVideo()
-	}
-	video.mutex.Unlock()
+func (src *VideoSrc) AddH264VideoTrack(track *webrtc.TrackLocalStaticSample) {
+	src.tracks[track.ID()] = track
 }
 
-func RemoveVideoTrack(track *webrtc.TrackLocalStaticSample) {
-	video.mutex.Lock()
-	delete(video.tracks, track.ID())
-
-	if len(video.tracks) == 0 {
-		closeVideo()
-	}
-	video.mutex.Unlock()
+func (src *VideoSrc) RemoveH264VideoTrack(track *webrtc.TrackLocalStaticSample) {
+	delete(src.tracks, track.ID())
 }
 
-func openVideo() {
-	video.loop = glib.NewMainLoop(glib.MainContextDefault(), false)
+func (src *VideoSrc) Open() error {
+	if src.loop != nil {
+		return errors.New("cannot open a VideoSrc, when it is already running")
+	}
 
-	pipeline, err := gst.NewPipelineFromString(video.src + " ! appsink name=sink sync=false")
+	loop := glib.NewMainLoop(glib.MainContextDefault(), false)
+	pipeline, err := gst.NewPipelineFromString(src.src)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	pipeline.GetPipelineBus().AddWatch(func(msg *gst.Message) bool {
 		switch msg.Type() {
 		case gst.MessageEOS: // When end-of-stream is received flush the pipeling and stop the main loop
 			pipeline.BlockSetState(gst.StateNull)
-			video.loop.Quit()
+			src.loop.Quit()
 		case gst.MessageError: // Error messages are always fatal
 			err := msg.ParseError()
 			fmt.Println("ERROR:", err.Error())
 			if debug := err.DebugString(); debug != "" {
 				fmt.Println("DEBUG:", debug)
 			}
-			video.loop.Quit()
+			src.loop.Quit()
 		default:
 			// All messages implement a Stringer. However, this is
 			// typically an expensive thing to do and should be avoided.
@@ -87,19 +66,15 @@ func openVideo() {
 		return true
 	})
 
-	si, er := pipeline.GetElementByName("sink")
-	if er != nil {
-		panic(er.Error())
-	}
-
-	sink := app.SinkFromElement(si)
+	h264sinkElement, err := pipeline.GetElementByName("h264sink")
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
+	h264sink := app.SinkFromElement(h264sinkElement)
 
-	sink.SetCallbacks(&app.SinkCallbacks{
+	h264sink.SetCallbacks(&app.SinkCallbacks{
 		NewSampleFunc: func(appSink *app.Sink) gst.FlowReturn {
-			sample := sink.PullSample()
+			sample := h264sink.PullSample()
 			if sample == nil {
 				return gst.FlowEOS
 			}
@@ -108,7 +83,7 @@ func openVideo() {
 				return gst.FlowError
 			}
 
-			for _, track := range video.tracks {
+			for _, track := range src.tracks {
 				track.WriteSample(media.Sample{
 					Data:     buffer.Bytes(),
 					Duration: 1 * time.Millisecond, // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
@@ -121,14 +96,25 @@ func openVideo() {
 
 	// Start the pipeline
 	pipeline.SetState(gst.StatePlaying)
-	video.pipeline = pipeline
+	src.pipeline = pipeline
+	src.loop = loop
 
-	// Block and iterate on the main loop
-	go video.loop.Run()
+	go src.loop.Run()
+	return nil
 }
 
-func closeVideo() {
+func (src *VideoSrc) Close() {
+	if src.loop == nil {
+		return
+	}
+	src.pipeline.BlockSetState(gst.StateNull)
+	src.loop.Quit()
+}
 
-	video.pipeline.SetState(gst.StateNull)
-	video.loop.Quit()
+func (src *VideoSrc) Tracks() []*webrtc.TrackLocalStaticSample {
+	return maps.Values(src.tracks)
+}
+
+func (src *VideoSrc) IsOpen() bool {
+	return src.loop != nil
 }

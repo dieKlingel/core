@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-
-	"github.com/dieklingel/core/internal/gmedia"
 )
+
+var config *Config
 
 func main() {
 	wd := os.Getenv("DIEKLINGEL_HOME")
@@ -24,20 +24,18 @@ func main() {
 	dir, _ := syscall.Getwd()
 	log.Printf("Running in working directory: %s", dir)
 
-	config, err := NewConfigFromCurrentDirectory()
+	conf, err := NewConfigFromCurrentDirectory()
 	if err != nil {
 		log.Printf("cannot read config fiel: %s", err.Error())
 		os.Exit(1)
 	}
+	config = conf
 
 	uri, err := url.Parse(config.Mqtt.Uri)
 	if err != nil {
 		log.Printf("cannot parse mqtt uri: %s", err.Error())
 		os.Exit(1)
 	}
-
-	gmedia.SetVideoSrc(config.Media.VideoSrc)
-	gmedia.SetAudioSrc(config.Media.AudioSrc)
 
 	RunApi(
 		*uri,
