@@ -13,7 +13,7 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-var connections map[string]RTC = make(map[string]RTC)
+var connections map[string]*RTC = make(map[string]*RTC)
 var videosrc *gmedia.VideoSrc
 var audiosrc *gmedia.AudioSrc
 
@@ -62,7 +62,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		},
 	)
 
-	rtc := RTC{
+	rtc := &RTC{
 		Connection:  peerConnection,
 		VideoTracks: make([]*webrtc.TrackLocalStaticSample, 0),
 		AudioTracks: make([]*webrtc.TrackLocalStaticSample, 0),
@@ -112,6 +112,13 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 
 	peerConnection.OnTrack(func(track *webrtc.TrackRemote, r *webrtc.RTPReceiver) {
 		fmt.Printf("Track has started, of type %d: %s \n", track.PayloadType(), track.Codec().MimeType)
+		if track.Kind() == webrtc.RTPCodecTypeAudio {
+			print(rtc)
+			rtc.RemoteAudioSink = gmedia.NewRemoteAudioSink(config.Media.AudioSink, track)
+			if err := rtc.RemoteAudioSink.Open(); err != nil {
+				log.Printf("cannot open audiosink: %s", err.Error())
+			}
+		}
 		// TODO: play stream, if audio
 	})
 
@@ -150,6 +157,12 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 		}
 		for _, track := range rtc.AudioTracks {
 			audiosrc.RemoveOpusAudioTrack(track)
+		}
+
+		if rtc.RemoteAudioSink != nil {
+			rtc.RemoteAudioSink.Close()
+		} else {
+			print("was null")
 		}
 	}
 

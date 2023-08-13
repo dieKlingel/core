@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-
-	"github.com/dieklingel/core/internal/gmedia"
 )
 
 var config *Config
@@ -38,8 +36,6 @@ func main() {
 		log.Printf("cannot parse mqtt uri: %s", err.Error())
 		os.Exit(1)
 	}
-
-	gmedia.SetAudioSrc(config.Media.AudioSrc)
 
 	RunApi(
 		*uri,
