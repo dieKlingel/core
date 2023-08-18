@@ -80,8 +80,11 @@ func ExecuteActionsFromPattern(pattern string, environment map[string]string) []
 			output, err := command.Output()
 			if err != nil {
 				log.Printf("error while running action: %s", err.Error())
+				if exit, ok := err.(*exec.ExitError); ok {
+					log.Printf("\r\n+- Error --+\r\n%s+----------+", exit.Stderr)
+				}
 			}
-			log.Printf("action output is:\r\n+---+\r\n%s+---+", string(output))
+			log.Printf("\r\n+- Output -+\r\n%s+----------+", string(output))
 		}
 	}
 
