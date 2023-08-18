@@ -39,8 +39,8 @@ func main() {
 
 	RunApi(
 		*uri,
-		config.Mqtt.Password,
 		config.Mqtt.Username,
+		config.Mqtt.Password,
 	)
 	RunProxy(8081)
 

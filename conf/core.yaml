@@ -16,7 +16,7 @@ media:
   audio-sink: appsrc format=time do-timestamp=true name=opussrc ! application/x-rtp, payload=127, encoding-name=OPUS ! rtpopusdepay ! decodebin ! autoaudiosink
 
 mqtt:
-  uri: mqtt://server.dieklingel.com:1883/dieklingel/mayer/kai/
+  uri: mqtts://server.dieklingel.com:8883/dieklingel/mayer/kai/
   username: ""
   password: ""
 

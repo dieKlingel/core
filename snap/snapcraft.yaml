@@ -3,7 +3,7 @@ title: dieKlingel Core
 contact: kai.mayer@dieklingel.com
 website: https://dieklingel.de/
 license: GPL-3.0
-version: 0.2.1+1
+version: 0.2.2+1
 summary: The core of the dieKlingel project.
 description: The core project containing the most important services to run the door unit.
 confinement: strict
@@ -81,6 +81,7 @@ parts:
     #      - libgstreamer-plugins-base1.0-dev
     stage-packages:
       - libdw-dev
+      # gstreamer
       - libgstreamer1.0-0
       - libgstreamer-plugins-base1.0-0
       - libgstreamer-plugins-bad1.0-0
