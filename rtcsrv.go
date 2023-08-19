@@ -151,6 +151,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 	}
 
 	connections[id] = rtc
+	log.Printf("start connection with id %s", id)
 
 	return NewResponseFromString(string(json), 201)
 }
@@ -160,6 +161,8 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 	id := pathSegments[len(pathSegments)-1]
 
 	if rtc, exists := connections[id]; exists {
+		log.Printf("close connection with id %s", id)
+
 		rtc.Connection.Close()
 		for _, track := range rtc.VideoTracks {
 			videosrc.RemoveH264VideoTrack(track)
