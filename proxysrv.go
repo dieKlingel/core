@@ -64,16 +64,13 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	subTopic := path.Join("./", req.URL.Path, answerChannel.String())
-	println(subTopic)
 	client.Subscribe(subTopic, 2, func(c mqtt.Client, m mqtt.Message) {
-		print("result")
 		response := NewEmptyResponse()
 		json.Unmarshal(m.Payload(), &response)
 		result <- response
 	})
 
 	pubTopic := path.Join("./", req.URL.Path)
-	println(pubTopic)
 	client.Publish(pubTopic, 2, false, httpRequestToMqttRequestPayload(req, answerChannel.String()))
 
 	select {
