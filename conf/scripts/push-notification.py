@@ -1,11 +1,23 @@
 import os, json, requests
 from datetime import datetime
 
+USERNAME = "<your username>"
+PASSWORD = "<your password>"
+PREFIX = "dieklingel/mayer/kai"
 SIGN = os.getenv("SIGN")
 
-result = requests.request("GET", "http://localhost:8081/proxy/dieklingel/mayer/kai/devices")
+result = requests.request(
+  "GET",
+  "http://localhost:8081/" + PREFIX + "/devices",
+  headers = {
+    "Username": USERNAME,
+    "Password": PASSWORD
+  }
+)
+
 if result.status_code != 200:
-	exit()
+  print("early exit, erro while fetching devices:", result.status_code, result.text)
+  exit(1)
 
 devices = result.json()
 devices = filter(lambda device: SIGN in device['signs'], devices)
@@ -21,7 +33,7 @@ now = datetime.now()
 
 payload = {
   'tokens': tokens,
-  'id': 'random123',
+  'id': '100',
   'title': 'Jemand steht vor deiner Tür!',
   'body': now.strftime("%d.%m.%Y %H:%M:%S")
 }

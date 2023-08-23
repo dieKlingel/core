@@ -15,6 +15,7 @@ import (
 
 func RegisterDeviceHandler(prefix string, client mqtt.Client) {
 	Register(client, path.Join(prefix), onDevices)
+	Register(client, path.Join(prefix, "save"), onSaveDevice)
 	Register(client, path.Join(prefix, "create"), onCreateDevice)
 	Register(client, path.Join(prefix, "update", "+"), onUpdateDevice)
 	Register(client, path.Join(prefix, "delete", "+"), onDeleteDevice)
@@ -52,6 +53,46 @@ func onDevices(client mqtt.Client, req Request) Response {
 	return NewResponseFromString(string(json), 200)
 }
 
+func onSaveDevice(client mqtt.Client, req Request) Response {
+	device := Device{}
+	if err := json.Unmarshal([]byte(req.Body), &device); err != nil {
+		return NewResponseFromString(fmt.Sprintf("could not parse the device: %s", err.Error()), 400)
+	}
+
+	if len(device.Token) == 0 {
+		return NewResponseFromString("the token cannot be empty", 400)
+	}
+
+	db, err := clover.Open("")
+	if err != nil {
+		return NewResponseFromString(fmt.Sprintf("Could not open the database: %s", err.Error()), 500)
+	}
+	defer db.Close()
+
+	if exists, _ := db.HasCollection("devices"); !exists {
+		db.CreateCollection("devices")
+	}
+
+	exists := true
+	doc, _ := db.FindFirst(query.NewQuery("devices").Where(query.Field("token").Eq(device.Token)))
+	if doc == nil {
+		doc = document.NewDocument()
+		exists = false
+
+		if err := db.Insert("devices", doc); err != nil {
+			return NewResponseFromString(fmt.Sprintf("could not insert device: %s", err.Error()), 400)
+		}
+	}
+	doc.Set("token", device.Token)
+	doc.Set("signs", device.Signs)
+	doc.SetExpiresAt(time.Now().Add(time.Hour * 24 * 60))
+
+	if exists {
+		return NewResponseFromString("Ok", 200)
+	}
+	return NewResponseFromString("Ok", 201)
+}
+
 func onCreateDevice(client mqtt.Client, req Request) Response {
 	device := Device{}
 	if err := json.Unmarshal([]byte(req.Body), &device); err != nil {
@@ -75,14 +116,14 @@ func onCreateDevice(client mqtt.Client, req Request) Response {
 	doc, _ := db.FindFirst(query.NewQuery("devices").Where(query.Field("token").Eq(device.Token)))
 	if doc == nil {
 		doc = document.NewDocument()
+
+		if err := db.Insert("devices", doc); err != nil {
+			return NewResponseFromString(fmt.Sprintf("could not insert device: %s", err.Error()), 400)
+		}
 	}
 	doc.Set("token", device.Token)
 	doc.Set("signs", device.Signs)
 	doc.SetExpiresAt(time.Now().Add(time.Hour * 24 * 60))
-
-	if err := db.Insert("devices", doc); err != nil {
-		return NewResponseFromString(fmt.Sprintf("could not insert device: %s", err.Error()), 400)
-	}
 
 	return NewResponseFromString("Ok", 201)
 }

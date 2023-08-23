@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -17,12 +16,7 @@ import (
 
 func RunProxy(port int) {
 	go func() {
-		http.HandleFunc("/proxy/", proxy)
-		staticDir := os.Getenv("DIEKLINGEL_STATIC_DIR")
-		if len(staticDir) != 0 {
-			log.Printf("serve static files from: %s", staticDir)
-			http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
-		}
+		http.HandleFunc("/", proxy)
 		http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	}()
 }
@@ -59,21 +53,28 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 	options.SetUsername(strings.Join(req.Header["Username"], ""))
 	options.SetPassword(strings.Join(req.Header["Password"], ""))
 	options.SetAutoReconnect(false)
-	options.OnConnect = func(c mqtt.Client) {
-		subTopic := strings.TrimPrefix(path.Join("./", req.URL.Path, answerChannel.String()), "proxy/")
-		c.Subscribe(subTopic, 2, func(c mqtt.Client, m mqtt.Message) {
-			response := NewEmptyResponse()
-			json.Unmarshal(m.Payload(), &response)
-			result <- response
-		})
-
-		pubTopic := strings.TrimPrefix(path.Join("./", req.URL.Path), "proxy/")
-		c.Publish(pubTopic, 2, false, httpRequestToMqttRequestPayload(req, answerChannel.String()))
-	}
 
 	client := mqtt.NewClient(options)
-	client.Connect()
-	defer client.Disconnect(0)
+
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		log.Printf("Proxy: Could not connect tho the broker. Message: %s\r\n", token.Error().Error())
+		writer.WriteHeader(400)
+		writer.Write([]byte(token.Error().Error()))
+		return
+	}
+
+	subTopic := path.Join("./", req.URL.Path, answerChannel.String())
+	println(subTopic)
+	client.Subscribe(subTopic, 2, func(c mqtt.Client, m mqtt.Message) {
+		print("result")
+		response := NewEmptyResponse()
+		json.Unmarshal(m.Payload(), &response)
+		result <- response
+	})
+
+	pubTopic := path.Join("./", req.URL.Path)
+	println(pubTopic)
+	client.Publish(pubTopic, 2, false, httpRequestToMqttRequestPayload(req, answerChannel.String()))
 
 	select {
 	case res := <-result:
@@ -83,9 +84,11 @@ func proxy(writer http.ResponseWriter, req *http.Request) {
 		}
 		writer.WriteHeader(res.StatusCode)
 		writer.Write([]byte(res.Body))
-	case <-time.After(10 * time.Second):
+	case <-time.After(20 * time.Second):
 		writer.WriteHeader(http.StatusNotFound)
 	}
+
+	defer client.Disconnect(0)
 }
 
 func httpRequestToMqttRequestPayload(req *http.Request, answerChannel string) string {
