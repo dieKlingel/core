@@ -36,8 +36,7 @@ func NewCamera(pipeline string) (*Camera, error) {
 
 func (cam *Camera) AddStream(stream *Stream) {
 	if _, exists := cam.streams[stream.ID()]; exists {
-		caps := cam.sink.GetCaps()
-		stream.src.SetCaps(caps)
+
 		return
 	}
 	if stream.camera != nil {
