@@ -61,6 +61,8 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		},
 	)
 
+	// TODO: implement auto cleanup on close for peerconnection
+
 	if err != nil {
 		peerConnection.Close()
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
