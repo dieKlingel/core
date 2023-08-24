@@ -66,11 +66,6 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
 	}
 
-	rtc := &RTC{
-		Connection:  peerConnection,
-		AudioTracks: make([]*webrtc.TrackLocalStaticSample, 0),
-	}
-
 	videotrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, fmt.Sprintf("video-%s", uuid.New().String()), "pion")
 	if err != nil {
 		panic(err)
@@ -98,6 +93,12 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 			}
 		}
 	}()
+
+	rtc := &RTC{
+		Connection:  peerConnection,
+		AudioTracks: make([]*webrtc.TrackLocalStaticSample, 0),
+		VideoStream: videostream,
+	}
 
 	if audiosrc.IsOpen() {
 		firstAudioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "audio/opus"}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion3")
@@ -174,6 +175,7 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 		rtc.Connection.Close()
 
 		if camera != nil && rtc.VideoStream != nil {
+			print("remove stream")
 			camera.RemoveStream(rtc.VideoStream)
 		}
 
