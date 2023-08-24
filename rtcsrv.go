@@ -177,7 +177,6 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 		rtc.Connection.Close()
 
 		if camera != nil && rtc.VideoStream != nil {
-			print("remove stream")
 			camera.RemoveStream(rtc.VideoStream)
 		}
 
