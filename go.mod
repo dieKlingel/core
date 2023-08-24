@@ -49,7 +49,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/image v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
 
@@ -61,6 +61,6 @@ require (
 	github.com/tinyzimmer/go-glib v0.0.25
 	github.com/tinyzimmer/go-gst v0.2.33
 	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
+	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/net v0.10.0 // indirect
 )
