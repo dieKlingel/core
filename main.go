@@ -8,11 +8,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dieklingel/core/internal/video"
+	"github.com/dieklingel/core/internal/io"
 )
 
 var config *Config
-var camera *video.Camera
+var camera *io.IOInputDevice
+var microphone *io.IOInputDevice
 
 func main() {
 	wd := os.Getenv("DIEKLINGEL_HOME")
@@ -40,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	camera, err = video.NewCamera(config.Media.VideoSrc)
+	camera, err = io.NewIOInputDevice(config.Media.VideoSrc)
 	if err != nil {
 		log.Printf(`cannot create the camera from video-src: %s.
 	A possible cause could be the upgrade to version 0.3.0 or higher.
@@ -52,6 +53,24 @@ func main() {
   	    video-src: autovideosrc ! video/x-raw, framerate=30/1, width=1280, height=720 ! appsink name=rawsink
 	...`, err.Error(),
 		)
+	} else {
+		camera.SetName("Camera")
+	}
+
+	microphone, err = io.NewIOInputDevice(config.Media.AudioSrc)
+	if err != nil {
+		log.Printf(`cannot create the microphone from audio-src: %s.
+	A possible cause could be the upgrade to version 0.3.0 or higher.
+	Since version 0.3.0 we no longer use 'opussink' in our auidio-src pipeline.
+	Instead we use 'rawsink' which should emit a raw audio stream,
+	which we will convert internal. In order to fix this, build your audio-src pipeline like:
+	...
+	  media:
+  	    audio-src: autoaudiosrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink ! appsink name=rawsink
+	...`, err.Error(),
+		)
+	} else {
+		microphone.SetName("Microphone")
 	}
 
 	RunApi(

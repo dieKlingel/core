@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"path"
 
-	"github.com/dieklingel/core/internal/video"
+	"github.com/dieklingel/core/internal/io"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -17,7 +17,7 @@ func onSnapshot(c mqtt.Client, req Request) Response {
 		return NewResponseFromString("the camera was not created succesfully, chech your logs for more information", 500)
 	}
 
-	stream, err := video.NewStream("appsrc name=src ! videoconvert ! pngenc ! appsink sync=false name=sink")
+	stream, err := io.NewStream("appsrc name=src ! videoconvert ! pngenc ! appsink sync=false name=sink")
 	if err != nil {
 		return NewResponseFromString(err.Error(), 500)
 	}

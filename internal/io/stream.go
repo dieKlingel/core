@@ -1,4 +1,4 @@
-package video
+package io
 
 import (
 	"fmt"
@@ -15,13 +15,22 @@ type Stream struct {
 	pipeline *gst.Pipeline
 	src      *app.Source
 	sink     *app.Sink
-	camera   *Camera
+	camera   *IOInputDevice
+	isready  bool
 }
 
 func NewStream(pipeline string) (*Stream, error) {
 	pipe, err := gst.NewPipelineFromString(pipeline)
 	if err != nil {
 		return nil, err
+	}
+
+	stream := &Stream{
+		Frame:    make(chan gst.Sample),
+		Finished: make(chan bool),
+		pipeline: pipe,
+		id:       uuid.New().String(),
+		isready:  true,
 	}
 
 	pipe.GetPipelineBus().AddWatch(func(msg *gst.Message) bool {
@@ -41,13 +50,6 @@ func NewStream(pipeline string) (*Stream, error) {
 		}
 		return true
 	})
-
-	stream := &Stream{
-		Frame:    make(chan gst.Sample),
-		Finished: make(chan bool),
-		pipeline: pipe,
-		id:       uuid.New().String(),
-	}
 
 	sink, err := pipe.GetElementByName("sink")
 	if err != nil {
@@ -83,4 +85,8 @@ func NewStream(pipeline string) (*Stream, error) {
 
 func (stream *Stream) ID() string {
 	return stream.id
+}
+
+func (stream *Stream) IsReady() bool {
+	return stream.isready
 }
