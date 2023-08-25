@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"path"
 	"strings"
 	"time"
@@ -86,6 +87,8 @@ func onSaveDevice(client mqtt.Client, req Request) Response {
 	doc.Set("token", device.Token)
 	doc.Set("signs", device.Signs)
 	doc.SetExpiresAt(time.Now().Add(time.Hour * 24 * 60))
+
+	log.Printf("save device with token %s", device.Token)
 
 	if exists {
 		return NewResponseFromString("Ok", 200)
