@@ -6,15 +6,17 @@ import (
 	"log"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/dieklingel/core/internal/gmedia"
+	"github.com/dieklingel/core/internal/io"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 	"github.com/pion/webrtc/v3"
+	"github.com/pion/webrtc/v3/pkg/media"
 )
 
 var connections map[string]*RTC = make(map[string]*RTC)
-var videosrc *gmedia.VideoSrc
 var audiosrc *gmedia.AudioSrc
 
 func RegisterRtcHandler(prefix string, client mqtt.Client) {
@@ -48,13 +50,6 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		}
 	}
 
-	if videosrc == nil {
-		videosrc = gmedia.NewVideoSrc(config.Media.VideoSrc)
-		if err := videosrc.Open(); err != nil {
-			log.Printf("Cannot open videosrc: %s", err.Error())
-		}
-	}
-
 	peerConnection, err := webrtc.NewPeerConnection(
 		webrtc.Configuration{
 			ICEServers: []webrtc.ICEServer{
@@ -66,46 +61,77 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 		},
 	)
 
-	rtc := &RTC{
-		Connection:  peerConnection,
-		VideoTracks: make([]*webrtc.TrackLocalStaticSample, 0),
-		AudioTracks: make([]*webrtc.TrackLocalStaticSample, 0),
-	}
+	// TODO: implement auto cleanup on close for peerconnection
 
 	if err != nil {
 		peerConnection.Close()
 		return NewResponseFromString(fmt.Sprintf("Cannot create a connection: %s", err.Error()), 500)
 	}
 
-	if videosrc.IsOpen() {
-		firstVideoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, fmt.Sprintf("video-%s", uuid.New().String()), "pion")
-		if err != nil {
-			panic(err)
-		}
-		rtc.VideoTracks = append(rtc.VideoTracks, firstVideoTrack)
-		videosrc.AddH264VideoTrack(firstVideoTrack)
-		_, err = peerConnection.AddTrack(firstVideoTrack)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		log.Print("start connection without video, because the videosrc is not opened")
+	// Add Videotrack to Connection
+
+	videotrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, fmt.Sprintf("video-%s", uuid.New().String()), "pion-video")
+	if err != nil {
+		panic(err)
+	}
+	_, err = peerConnection.AddTrack(videotrack)
+	if err != nil {
+		println("could not add track" + err.Error())
 	}
 
-	if audiosrc.IsOpen() {
-		firstAudioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: "audio/opus"}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion3")
-		if err != nil {
-			panic(err)
+	videostream, err := io.NewStream("appsrc name=src ! video/x-raw ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! appsink sync=false name=sink")
+	if err != nil {
+		panic(err.Error())
+	}
+	camera.AddStream(videostream)
+	go func() {
+		for {
+			select {
+			case sample := <-videostream.Frame:
+				videotrack.WriteSample(media.Sample{
+					Data:     sample.GetBuffer().Bytes(),
+					Duration: 1 * time.Millisecond, // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
+				})
+			case <-videostream.Finished:
+				return
+			}
 		}
+	}()
 
-		rtc.AudioTracks = append(rtc.AudioTracks, firstAudioTrack)
-		audiosrc.AddOpusAudioTrack(firstAudioTrack)
-		_, err = peerConnection.AddTrack(firstAudioTrack)
-		if err != nil {
-			panic(err)
+	// Add Audiotrack to Connection
+
+	audiotrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion-audio")
+	if err != nil {
+		panic(err)
+	}
+	_, err = peerConnection.AddTrack(audiotrack)
+	if err != nil {
+		println("could not add track" + err.Error())
+	}
+
+	audiostream, err := io.NewStream("appsrc name=src ! audioconvert ! opusenc ! appsink sync=false name=sink")
+	if err != nil {
+		panic(err.Error())
+	}
+	microphone.AddStream(audiostream)
+	go func() {
+		for {
+			select {
+			case sample := <-audiostream.Frame:
+				audiotrack.WriteSample(media.Sample{
+					Data:     sample.GetBuffer().Bytes(),
+					Duration: sample.GetBuffer().Duration(),
+				})
+			case <-audiostream.Finished:
+				return
+			}
 		}
-	} else {
-		log.Print("start connection without audio, because the audiosrc is not opened")
+	}()
+
+	rtc := &RTC{
+		Connection:  peerConnection,
+		AudioStream: audiostream,
+		VideoStream: videostream,
 	}
 
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
@@ -157,6 +183,7 @@ func onCreateConnection(client mqtt.Client, req Request) Response {
 }
 
 func onCloseConnection(client mqtt.Client, req Request) Response {
+
 	pathSegments := strings.Split(req.RequestPath, "/")
 	id := pathSegments[len(pathSegments)-1]
 
@@ -164,19 +191,18 @@ func onCloseConnection(client mqtt.Client, req Request) Response {
 		log.Printf("close connection with id %s", id)
 
 		rtc.Connection.Close()
-		for _, track := range rtc.VideoTracks {
-			videosrc.RemoveH264VideoTrack(track)
-		}
-		for _, track := range rtc.AudioTracks {
-			audiosrc.RemoveOpusAudioTrack(track)
+
+		if camera != nil && rtc.VideoStream != nil {
+			camera.RemoveStream(rtc.VideoStream)
 		}
 
-		rtc.RemoteAudioSink.Close()
-	}
+		if microphone != nil && rtc.AudioStream != nil {
+			microphone.RemoveStream(rtc.AudioStream)
+		}
 
-	if len(videosrc.Tracks()) == 0 {
-		videosrc.Close()
-		videosrc = nil
+		if rtc.RemoteAudioSink != nil {
+			rtc.RemoteAudioSink.Close()
+		}
 	}
 
 	if len(audiosrc.Tracks()) == 0 {
