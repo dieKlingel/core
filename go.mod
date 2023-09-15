@@ -3,7 +3,7 @@ module github.com/dieklingel/core
 go 1.18
 
 require (
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/pion/webrtc/v3 v3.2.11
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -47,16 +47,15 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/image v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/ostafen/clover/v2 v2.0.0-alpha.3
-	github.com/pion/mediadevices v0.5.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/tinyzimmer/go-glib v0.0.25
 	github.com/tinyzimmer/go-gst v0.2.33
