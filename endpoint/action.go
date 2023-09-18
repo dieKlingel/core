@@ -10,6 +10,7 @@ type ActionService interface {
 	Remove(id string) error
 	Add(trigger string, script string) (string, error)
 	Execute(action api.Action, environment map[string]string) api.ActionExecutionResult
+	GetById(id string) api.Action
 }
 
 type ActionEndpoint struct {
@@ -45,11 +46,17 @@ func (endpoint *ActionEndpoint) Execute(pattern string, environment map[string]s
 	return result
 }
 
-func (endpoint *ActionEndpoint) Add(trigger string, script string) string {
+func (endpoint *ActionEndpoint) GetById(id string) api.Action {
+	action := endpoint.service.GetById(id)
+
+	return action
+}
+
+func (endpoint *ActionEndpoint) Add(trigger string, script string) api.Action {
 	id, err := endpoint.service.Add(trigger, script)
 	if err != nil {
-		return ""
+		return nil
 	}
 
-	return id
+	return endpoint.service.GetById(id)
 }

@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html>
-  <head> </head>
+  <head>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+  </head>
   <body>
     <h1>{{ .Headline }}</h1>
+    <main>
+      <div hx-get="/dashboard/actions" hx-trigger="load"></div>
+    </main>
   </body>
 </html>

@@ -155,3 +155,34 @@ func (service *ActionService) Execute(action api.Action, environment map[string]
 		exitCode: -1, // TODO: read exit code
 	}
 }
+
+func (service *ActionService) GetById(id string) api.Action {
+	db, err := clover.Open("")
+	if err != nil {
+		log.Printf("an error occured while open the database: %s", err.Error())
+		return nil
+	}
+	defer db.Close()
+
+	if succes, _ := db.HasCollection("actions"); !succes {
+		return nil
+	}
+
+	doc, err := db.FindById("actions", id)
+	if err != nil {
+		log.Printf("an error occured while fetching actions: %s", err.Error())
+		return nil
+	}
+
+	if doc == nil {
+		return nil
+	}
+
+	action := &action{
+		id:      doc.ObjectId(),
+		trigger: doc.Get("trigger").(string),
+		script:  doc.Get("trigger").(string),
+	}
+
+	return action
+}
