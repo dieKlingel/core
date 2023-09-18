@@ -8,7 +8,11 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dieklingel/core/endpoint"
 	"github.com/dieklingel/core/internal/io"
+	"github.com/dieklingel/core/service"
+	"github.com/dieklingel/core/transport"
+	"github.com/spf13/viper"
 )
 
 var config *Config
@@ -35,7 +39,7 @@ func main() {
 	}
 	config = conf
 
-	uri, err := url.Parse(config.Mqtt.Uri)
+	_, err = url.Parse(config.Mqtt.Uri)
 	if err != nil {
 		log.Printf("cannot parse mqtt uri: %s", err.Error())
 		os.Exit(1)
@@ -73,15 +77,33 @@ func main() {
 		microphone.SetName("Microphone")
 	}
 
-	RunApi(
-		*uri,
-		config.Mqtt.Username,
-		config.Mqtt.Password,
-	)
-	RunProxy(8081)
+	viper.SetConfigName("core")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("$DIEKLINGEL_HOME")
+	viper.AddConfigPath("/etc/dieklingel")
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Fatal("the config file coulf not be found")
+			os.Exit(1)
+		} else {
+			log.Fatal("the config file could not be parsed")
+			os.Exit(2)
+		}
+	}
+
+	viper.SetDefault("http.port", "8080")
+	viper.SetDefault("mqtt.uri", "mqtts://server.dieklingel.com:8883/dieklingel/mayer/kai/")
+
+	system := endpoint.NewSystemEndpoint(service.NewSystemService())
+
+	transport.NewHttpTransport(8080, system).Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 	<-sigint
+
+	// TODO: cleanup
 }
