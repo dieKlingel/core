@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dieklingel/core/internal/api"
 	"github.com/dieklingel/core/transport/dashboard"
 	"github.com/gorilla/mux"
 )
@@ -14,16 +15,24 @@ type SystemEndpoint interface {
 	Version() string
 }
 
+type ActionEndpoint interface {
+	List() []api.Action
+	Execute(pattern string, environment map[string]string) []api.ActionExecutionResult
+}
+
 type HttpTransport struct {
 	port   int
 	system SystemEndpoint
+	action ActionEndpoint
+
 	server *http.Server
 }
 
-func NewHttpTransport(port int, system SystemEndpoint) *HttpTransport {
+func NewHttpTransport(port int, system SystemEndpoint, action ActionEndpoint) *HttpTransport {
 	return &HttpTransport{
 		port:   port,
 		system: system,
+		action: action,
 	}
 }
 
@@ -41,6 +50,13 @@ func (transport *HttpTransport) Run() error {
 	router.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		templ := template.Must(template.ParseFS(dashboard.Files(), "html/index.html"))
 		templ.Execute(w, nil)
+	})
+
+	router.HandleFunc("/dashboard/actions-list", func(w http.ResponseWriter, r *http.Request) {
+		actions := transport.action.List()
+
+		templ := template.Must(template.ParseFS(dashboard.Files(), "html/components/actions-list.html"))
+		templ.Execute(w, actions)
 	})
 
 	transport.server = &http.Server{

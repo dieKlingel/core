@@ -97,8 +97,11 @@ func main() {
 	viper.SetDefault("mqtt.uri", "mqtts://server.dieklingel.com:8883/dieklingel/mayer/kai/")
 
 	system := endpoint.NewSystemEndpoint(service.NewSystemService())
+	action := endpoint.NewActionEndpoint(service.NewActionService())
 
-	transport.NewHttpTransport(8080, system).Run()
+	//action.Add("test", "echo H")
+
+	transport.NewHttpTransport(8080, system, action).Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)
