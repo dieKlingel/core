@@ -181,8 +181,7 @@ func (service *ActionService) GetById(id string) api.Action {
 	action := &action{
 		id:      doc.ObjectId(),
 		trigger: doc.Get("trigger").(string),
-		script:  doc.Get("trigger").(string),
+		script:  doc.Get("script").(string),
 	}
-
 	return action
 }

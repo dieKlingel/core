@@ -98,10 +98,11 @@ func main() {
 
 	system := endpoint.NewSystemEndpoint(service.NewSystemService())
 	action := endpoint.NewActionEndpoint(service.NewActionService())
+	sign := endpoint.NewSignEndpoint(service.NewSignService())
 
 	//action.Add("test", "echo H")
 
-	transport.NewHttpTransport(8080, system, action).Run()
+	transport.NewHttpTransport(8080, system, action, sign).Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)

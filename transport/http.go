@@ -6,36 +6,25 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dieklingel/core/internal/api"
 	"github.com/dieklingel/core/transport/dashboard"
 	"github.com/gorilla/mux"
 )
-
-type SystemEndpoint interface {
-	Version() string
-}
-
-type ActionEndpoint interface {
-	List() []api.Action
-	Execute(pattern string, environment map[string]string) []api.ActionExecutionResult
-	GetById(id string) api.Action
-	Add(trigger string, script string) api.Action
-	Delete(api.Action)
-}
 
 type HttpTransport struct {
 	port   int
 	system SystemEndpoint
 	action ActionEndpoint
+	sign   SignEndpoint
 
 	server *http.Server
 }
 
-func NewHttpTransport(port int, system SystemEndpoint, action ActionEndpoint) *HttpTransport {
+func NewHttpTransport(port int, system SystemEndpoint, action ActionEndpoint, sign SignEndpoint) *HttpTransport {
 	return &HttpTransport{
 		port:   port,
 		system: system,
 		action: action,
+		sign:   sign,
 	}
 }
 
@@ -106,6 +95,60 @@ func (transport *HttpTransport) Run() error {
 		}
 
 		transport.action.Delete(action)
+		w.WriteHeader(http.StatusNoContent)
+	}).Methods("DELETE")
+
+	router.HandleFunc("/dashboard/signs", func(w http.ResponseWriter, r *http.Request) {
+		signs := transport.sign.List()
+
+		templ := template.Must(template.ParseFS(dashboard.Files(), "html/signs.html"))
+		templ.Execute(w, signs)
+	}).Methods("GET")
+
+	router.HandleFunc("/dashboard/signs", func(w http.ResponseWriter, r *http.Request) {
+		name := r.FormValue("name")
+		script := r.FormValue("script")
+
+		if len(name) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("a value for the key 'name' was not provied"))
+			return
+		}
+		if len(script) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("a value for the key 'script' was not provied"))
+			return
+		}
+
+		sign := transport.sign.Add(name, script)
+
+		templ := template.Must(template.ParseFS(dashboard.Files(), "html/sign.html"))
+		templ.Execute(w, sign)
+	}).Methods("POST")
+
+	router.HandleFunc("/dashboard/signs/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		sign := transport.sign.GetById(vars["id"])
+
+		if sign == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		templ := template.Must(template.ParseFS(dashboard.Files(), "html/sign.html"))
+		templ.Execute(w, sign)
+	}).Methods("GET")
+
+	router.HandleFunc("/dashboard/signs/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		sign := transport.sign.GetById(vars["id"])
+
+		if sign == nil {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		transport.sign.Delete(sign)
 		w.WriteHeader(http.StatusNoContent)
 	}).Methods("DELETE")
 
