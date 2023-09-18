@@ -20,6 +20,7 @@ type ActionEndpoint interface {
 	Execute(pattern string, environment map[string]string) []api.ActionExecutionResult
 	GetById(id string) api.Action
 	Add(trigger string, script string) api.Action
+	Delete(api.Action)
 }
 
 type HttpTransport struct {
@@ -93,7 +94,20 @@ func (transport *HttpTransport) Run() error {
 
 		templ := template.Must(template.ParseFS(dashboard.Files(), "html/action.html"))
 		templ.Execute(w, action)
-	})
+	}).Methods("GET")
+
+	router.HandleFunc("/dashboard/actions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		action := transport.action.GetById(vars["id"])
+
+		if action == nil {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		transport.action.Delete(action)
+		w.WriteHeader(http.StatusNoContent)
+	}).Methods("DELETE")
 
 	transport.server = &http.Server{
 		Handler:      router,

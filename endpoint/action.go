@@ -60,3 +60,7 @@ func (endpoint *ActionEndpoint) Add(trigger string, script string) api.Action {
 
 	return endpoint.service.GetById(id)
 }
+
+func (endpoint *ActionEndpoint) Delete(action api.Action) {
+	endpoint.service.Remove(action.Id())
+}
