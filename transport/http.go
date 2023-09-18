@@ -2,9 +2,11 @@ package transport
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"time"
 
+	"github.com/dieklingel/core/transport/dashboard"
 	"github.com/gorilla/mux"
 )
 
@@ -34,6 +36,11 @@ func (transport *HttpTransport) Run() error {
 	router.HandleFunc("/system", func(w http.ResponseWriter, r *http.Request) {
 		version := transport.system.Version()
 		w.Write([]byte(version))
+	})
+
+	router.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
+		templ := template.Must(template.ParseFS(dashboard.Files(), "html/index.html"))
+		templ.Execute(w, nil)
 	})
 
 	transport.server = &http.Server{
