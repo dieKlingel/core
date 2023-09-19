@@ -11,6 +11,7 @@ import (
 	hw "github.com/dieklingel/core/internal/io"
 	"github.com/dieklingel/core/transport/dashboard"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 
 type HttpTransport struct {
@@ -18,18 +19,22 @@ type HttpTransport struct {
 	system SystemEndpoint
 	action ActionEndpoint
 	sign   SignEndpoint
+	user   UserEndpoint
 	camera hw.Camera
 
-	server *http.Server
+	server       *http.Server
+	sessionStore sessions.Store
 }
 
-func NewHttpTransport(port int, system SystemEndpoint, action ActionEndpoint, sign SignEndpoint, camera hw.Camera) *HttpTransport {
+func NewHttpTransport(port int, user UserEndpoint, system SystemEndpoint, action ActionEndpoint, sign SignEndpoint, camera hw.Camera) *HttpTransport {
 	return &HttpTransport{
-		port:   port,
-		system: system,
-		action: action,
-		sign:   sign,
-		camera: camera,
+		port:         port,
+		system:       system,
+		action:       action,
+		sign:         sign,
+		user:         user,
+		camera:       camera,
+		sessionStore: sessions.NewCookieStore([]byte("my-secret-key")),
 	}
 }
 
@@ -40,6 +45,11 @@ func (transport *HttpTransport) Port() int {
 func (transport *HttpTransport) Run() error {
 	router := mux.NewRouter()
 	router.HandleFunc("/system", func(w http.ResponseWriter, r *http.Request) {
+		if !transport.auth(r, "read:system-information") {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		version := transport.system.Version()
 		w.Write([]byte(version))
 	})
@@ -158,6 +168,12 @@ func (transport *HttpTransport) Run() error {
 	}).Methods("DELETE")
 
 	router.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+		if !transport.auth(r, "read:stream") {
+			w.Header().Add("WWW-Authenticate", "Basic realm=\"*\"")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		stream, err := transport.camera.NewStream(hw.MJPEGCameraCodec)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -201,6 +217,12 @@ func (transport *HttpTransport) Run() error {
 	}).Methods("GET")
 
 	router.HandleFunc("/snapshot", func(w http.ResponseWriter, r *http.Request) {
+		if !transport.auth(r, "read:snapshot") {
+			w.Header().Add("WWW-Authenticate", "Basic realm=\"*\"")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		stream, err := transport.camera.NewStream(hw.MJPEGCameraCodec)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -234,4 +256,10 @@ func (transport *HttpTransport) Run() error {
 
 	go transport.server.ListenAndServe()
 	return nil
+}
+
+func (transport *HttpTransport) auth(r *http.Request, ressource string) bool {
+	username, password, _ := r.BasicAuth()
+	auth, _ := transport.user.Authorize(username, password, ressource)
+	return auth
 }

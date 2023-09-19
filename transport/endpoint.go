@@ -1,6 +1,8 @@
 package transport
 
-import "github.com/dieklingel/core/internal/api"
+import (
+	"github.com/dieklingel/core/internal/api"
+)
 
 type SystemEndpoint interface {
 	Version() string
@@ -19,4 +21,10 @@ type SignEndpoint interface {
 	Add(name string, script string) api.Sign
 	Delete(api.Sign)
 	GetById(id string) api.Sign
+}
+
+type UserEndpoint interface {
+	Create(username string, password string, role string) (api.User, error)
+	GetByUsername(username string) api.User
+	Authorize(username string, password string, ressource string) (bool, api.User)
 }

@@ -102,13 +102,18 @@ func main() {
 		os.Exit(3)
 	}
 
+	roleservice := service.NewRoleService()
+
 	system := endpoint.NewSystemEndpoint(service.NewSystemService())
 	action := endpoint.NewActionEndpoint(service.NewActionService())
 	sign := endpoint.NewSignEndpoint(service.NewSignService())
+	user := endpoint.NewUserEndpoint(service.NewUserService(), roleservice)
 
-	//action.Add("test", "echo H")
+	rules := roleservice.RuleSet()
+	rules.Role("admin").Ressource("*").Allow()
+	roleservice.SetRuleSet(rules)
 
-	transport.NewHttpTransport(8080, system, action, sign, camera).Run()
+	transport.NewHttpTransport(8080, user, system, action, sign, camera).Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)
