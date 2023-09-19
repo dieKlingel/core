@@ -96,13 +96,19 @@ func main() {
 	viper.SetDefault("http.port", "8080")
 	viper.SetDefault("mqtt.uri", "mqtts://server.dieklingel.com:8883/dieklingel/mayer/kai/")
 
+	camera, err := io.NewCamera(viper.GetString("media.video-src"))
+	if err != nil {
+		log.Fatal("could not allocate all camera ressources")
+		os.Exit(3)
+	}
+
 	system := endpoint.NewSystemEndpoint(service.NewSystemService())
 	action := endpoint.NewActionEndpoint(service.NewActionService())
 	sign := endpoint.NewSignEndpoint(service.NewSignService())
 
 	//action.Add("test", "echo H")
 
-	transport.NewHttpTransport(8080, system, action, sign).Run()
+	transport.NewHttpTransport(8080, system, action, sign, camera).Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)

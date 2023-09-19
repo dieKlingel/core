@@ -3,9 +3,12 @@ package transport
 import (
 	"fmt"
 	"html/template"
+	"io"
+	"log"
 	"net/http"
 	"time"
 
+	hw "github.com/dieklingel/core/internal/io"
 	"github.com/dieklingel/core/transport/dashboard"
 	"github.com/gorilla/mux"
 )
@@ -15,16 +18,18 @@ type HttpTransport struct {
 	system SystemEndpoint
 	action ActionEndpoint
 	sign   SignEndpoint
+	camera hw.Camera
 
 	server *http.Server
 }
 
-func NewHttpTransport(port int, system SystemEndpoint, action ActionEndpoint, sign SignEndpoint) *HttpTransport {
+func NewHttpTransport(port int, system SystemEndpoint, action ActionEndpoint, sign SignEndpoint, camera hw.Camera) *HttpTransport {
 	return &HttpTransport{
 		port:   port,
 		system: system,
 		action: action,
 		sign:   sign,
+		camera: camera,
 	}
 }
 
@@ -152,11 +157,79 @@ func (transport *HttpTransport) Run() error {
 		w.WriteHeader(http.StatusNoContent)
 	}).Methods("DELETE")
 
+	router.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := transport.camera.NewStream(hw.MJPEGCameraCodec)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer transport.camera.ReleaseStream(stream)
+
+		w.Header().Add("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+		boundary := "\r\n--frame\r\nContent-Type: image/jpeg\r\n\r\n"
+
+		for {
+			select {
+			case frame := <-stream.Frame:
+				img := frame.GetBuffer().Bytes()
+
+				if err != nil {
+					return
+				}
+
+				n, err := io.WriteString(w, boundary)
+				if err != nil || n != len(boundary) {
+					return
+				}
+
+				n, err = w.Write(img)
+				if err != nil || n != len(img) {
+					return
+				}
+
+				n, err = io.WriteString(w, "\r\n")
+				if err != nil || n != 2 {
+					return
+				}
+			case <-r.Context().Done():
+				return
+			case <-time.After(5 * time.Second):
+				log.Println("the http mjpeg stream was closed by timeout of 5 seconds, cause no frame could be received but the connection was still open")
+				return
+			}
+		}
+	}).Methods("GET")
+
+	router.HandleFunc("/snapshot", func(w http.ResponseWriter, r *http.Request) {
+		stream, err := transport.camera.NewStream(hw.MJPEGCameraCodec)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer transport.camera.ReleaseStream(stream)
+
+		select {
+		case frame := <-stream.Frame:
+			img := frame.GetBuffer().Bytes()
+			if err != nil {
+				return
+			}
+
+			n, err := w.Write(img)
+			if err != nil || n != len(img) {
+				return
+			}
+		case <-time.After(5 * time.Second):
+			log.Println("the http jpeg snapshot was closed by timeout of 5 seconds, cause no frame could be received but the connection was still open")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}).Methods("GET")
+
 	transport.server = &http.Server{
-		Handler:      router,
-		Addr:         fmt.Sprintf(":%d", transport.port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		Handler:     router,
+		Addr:        fmt.Sprintf(":%d", transport.port),
+		ReadTimeout: 15 * time.Second,
 	}
 
 	go transport.server.ListenAndServe()
