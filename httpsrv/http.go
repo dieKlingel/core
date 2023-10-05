@@ -14,16 +14,18 @@ type HttpService struct {
 	ActionService core.ActionService
 	DeviceService core.DeviceService
 	SignService   core.SignService
+	UserService   core.UserService
 
 	server *http.Server
 }
 
-func NewService(port int, actionsrv core.ActionService, devicesrv core.DeviceService, signsrv core.SignService) core.HttpService {
+func NewService(port int, actionsrv core.ActionService, devicesrv core.DeviceService, signsrv core.SignService, usersrv core.UserService) core.HttpService {
 	return &HttpService{
 		Port:          port,
 		ActionService: actionsrv,
 		DeviceService: devicesrv,
 		SignService:   signsrv,
+		UserService:   usersrv,
 	}
 }
 
@@ -34,6 +36,7 @@ func (transport *HttpService) Run() error {
 	buildActionRoutes(transport, router.PathPrefix("/actions").Subrouter())
 	buildDeviceRoutes(transport, router.PathPrefix("/devices").Subrouter())
 	buildSignRoutes(transport, router.PathPrefix("/signs").Subrouter())
+	buildUserRoutes(transport, router.PathPrefix("/users").Subrouter())
 
 	transport.server = &http.Server{
 		Handler:     router,
