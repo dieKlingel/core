@@ -36,6 +36,40 @@ func NewUserService() *UserService {
 	return &UserService{}
 }
 
+func (service *UserService) List() []api.User {
+	db, err := clover.Open("")
+	if err != nil {
+		log.Printf("an error occured while open the database: %s", err.Error())
+		return make([]api.User, 0)
+	}
+	defer db.Close()
+
+	if succes, _ := db.HasCollection("users"); !succes {
+		return make([]api.User, 0)
+	}
+
+	docs, err := db.FindAll(query.NewQuery("users"))
+	if err != nil {
+		log.Printf("an error occured while fetching users: %s", err.Error())
+		return make([]api.User, 0)
+	}
+
+	users := make([]api.User, len(docs))
+	for index, doc := range docs {
+		username := doc.Get("username").(string)
+		password := doc.Get("password").(string)
+		role := doc.Get("role").(string)
+
+		users[index] = &user{
+			username: username,
+			password: password,
+			role:     role,
+		}
+	}
+
+	return users
+}
+
 func (service *UserService) Create(username string, password string, role string) (api.User, error) {
 	db, err := clover.Open("")
 	if err != nil {

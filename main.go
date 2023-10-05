@@ -8,11 +8,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dieklingel/core/endpoint"
+	"github.com/dieklingel/core/actionsrv"
+	"github.com/dieklingel/core/devicesrv"
+	"github.com/dieklingel/core/httpsrv"
 	"github.com/dieklingel/core/internal/io"
-	"github.com/dieklingel/core/service"
-	"github.com/dieklingel/core/transport"
-	"github.com/spf13/viper"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var config *Config
@@ -77,43 +78,16 @@ func main() {
 		microphone.SetName("Microphone")
 	}
 
-	viper.SetConfigName("core")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("$DIEKLINGEL_HOME")
-	viper.AddConfigPath("/etc/dieklingel")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Fatal("the config file coulf not be found")
-			os.Exit(1)
-		} else {
-			log.Fatal("the config file could not be parsed")
-			os.Exit(2)
-		}
-	}
-
-	viper.SetDefault("http.port", "8080")
-	viper.SetDefault("mqtt.uri", "mqtts://server.dieklingel.com:8883/dieklingel/mayer/kai/")
-
-	camera, err := io.NewCamera(viper.GetString("media.video-src"))
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
-		log.Fatal("could not allocate all camera ressources")
-		os.Exit(3)
+		panic("failed to connect database")
 	}
 
-	roleservice := service.NewRoleService()
+	actionsrv := actionsrv.NewService(db)
+	devicesrv := devicesrv.NewService(db)
+	httpsrv := httpsrv.NewService(8080, actionsrv, devicesrv)
 
-	system := endpoint.NewSystemEndpoint(service.NewSystemService())
-	action := endpoint.NewActionEndpoint(service.NewActionService())
-	sign := endpoint.NewSignEndpoint(service.NewSignService())
-	user := endpoint.NewUserEndpoint(service.NewUserService(), roleservice)
-
-	rules := roleservice.RuleSet()
-	rules.Role("admin").Ressource("*").Allow()
-	roleservice.SetRuleSet(rules)
-
-	transport.NewHttpTransport(8080, user, system, action, sign, camera).Run()
+	httpsrv.Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)

@@ -38,8 +38,6 @@ func RunApi(url url.URL, username string, password string) {
 	RegisterCameraHandler(prefix+"/camera", client)
 	RegisterRtcHandler(prefix+"/rtc", client)
 	RegisterDeviceHandler(prefix+"/devices", client)
-	RegisterActionHandler(prefix+"/actions", client)
-	RegisterSignHandler(prefix+"/signs", client)
 }
 
 func onConnect(client mqtt.Client) {
