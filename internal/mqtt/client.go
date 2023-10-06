@@ -15,10 +15,11 @@ type Client struct {
 	autoReconnect bool
 	keepAlive     time.Duration
 	client        *mq.Client
+	error         error
 }
 
-func NewClient() Client {
-	client := Client{
+func NewClient() *Client {
+	client := &Client{
 		broker:        "",
 		clientId:      uuid.New().String(),
 		username:      "",
@@ -26,9 +27,21 @@ func NewClient() Client {
 		autoReconnect: false,
 		keepAlive:     0 * time.Second,
 		client:        nil,
+		error:         nil,
 	}
 
 	return client
+}
+
+func (client *Client) Error() error {
+	return client.error
+}
+
+func (client *Client) ErrorMessage() string {
+	if client.error == nil {
+		return ""
+	}
+	return client.Error().Error()
 }
 
 func (client *Client) SetBroker(server string) {
@@ -71,7 +84,15 @@ func (client *Client) Connect() Token {
 	c := mq.NewClient(options)
 	client.client = &c
 
-	return (*client.client).Connect()
+	token := (*client.client).Connect()
+
+	if token.Wait(); token.Error() != nil {
+		client.error = token.Error()
+	} else {
+		client.error = nil
+	}
+
+	return token
 }
 
 func (client *Client) Disconnect() {
@@ -82,4 +103,8 @@ func (client *Client) Disconnect() {
 	(*client.client).Disconnect(0)
 	client.client = nil
 
+}
+
+func (client *Client) IsConnected() bool {
+	return (*client.client).IsConnected()
 }

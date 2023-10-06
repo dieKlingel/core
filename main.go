@@ -13,6 +13,7 @@ import (
 	"github.com/dieklingel/core/devicesrv"
 	"github.com/dieklingel/core/httpsrv"
 	"github.com/dieklingel/core/internal/io"
+	"github.com/dieklingel/core/mqttsrv"
 	"github.com/dieklingel/core/signsrv"
 	"github.com/dieklingel/core/usersrv"
 	"gorm.io/driver/sqlite"
@@ -91,7 +92,8 @@ func main() {
 	signsrv := signsrv.NewService(db)
 	usersrv := usersrv.NewService(db)
 	camerasrv := camerasrv.NewService(db)
-	httpsrv := httpsrv.NewService(8080, actionsrv, devicesrv, signsrv, usersrv, camerasrv)
+	mqttsrv := mqttsrv.NewService(db)
+	httpsrv := httpsrv.NewService(8080, actionsrv, devicesrv, signsrv, usersrv, camerasrv, mqttsrv)
 
 	httpsrv.Run()
 

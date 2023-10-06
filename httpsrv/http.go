@@ -16,11 +16,12 @@ type HttpService struct {
 	SignService   core.SignService
 	UserService   core.UserService
 	CameraService core.CameraService
+	MqttService   core.MqttService
 
 	server *http.Server
 }
 
-func NewService(port int, actionsrv core.ActionService, devicesrv core.DeviceService, signsrv core.SignService, usersrv core.UserService, camerasrv core.CameraService) core.HttpService {
+func NewService(port int, actionsrv core.ActionService, devicesrv core.DeviceService, signsrv core.SignService, usersrv core.UserService, camerasrv core.CameraService, mqttsrv core.MqttService) core.HttpService {
 	return &HttpService{
 		Port:          port,
 		ActionService: actionsrv,
@@ -28,6 +29,7 @@ func NewService(port int, actionsrv core.ActionService, devicesrv core.DeviceSer
 		SignService:   signsrv,
 		UserService:   usersrv,
 		CameraService: camerasrv,
+		MqttService:   mqttsrv,
 	}
 }
 
