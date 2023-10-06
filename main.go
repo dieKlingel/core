@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/dieklingel/core/actionsrv"
+	"github.com/dieklingel/core/camerasrv"
 	"github.com/dieklingel/core/devicesrv"
 	"github.com/dieklingel/core/httpsrv"
 	"github.com/dieklingel/core/internal/io"
@@ -89,7 +90,8 @@ func main() {
 	devicesrv := devicesrv.NewService(db)
 	signsrv := signsrv.NewService(db)
 	usersrv := usersrv.NewService(db)
-	httpsrv := httpsrv.NewService(8080, actionsrv, devicesrv, signsrv, usersrv)
+	camerasrv := camerasrv.NewService(db)
+	httpsrv := httpsrv.NewService(8080, actionsrv, devicesrv, signsrv, usersrv, camerasrv)
 
 	httpsrv.Run()
 

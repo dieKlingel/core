@@ -3,6 +3,8 @@ package core
 import "github.com/dieklingel/core/internal/io"
 
 type CameraService interface {
-	NewCameraStream() *io.Stream
+	CameraPipeline() string
+	SetCameraPipeline(pipeline string)
+	NewCameraStream(codec io.CameraCodec) *io.Stream
 	ReleaseCameraStream(stream *io.Stream)
 }

@@ -11,6 +11,7 @@ const (
 type Camera interface {
 	NewStream(codec CameraCodec) (*Stream, error)
 	ReleaseStream(stream *Stream)
+	HasStream() bool
 }
 
 type camera struct {
@@ -41,4 +42,8 @@ func (cam *camera) NewStream(codec CameraCodec) (*Stream, error) {
 
 func (cam *camera) ReleaseStream(stream *Stream) {
 	cam.iodev.RemoveStream(stream)
+}
+
+func (cam *camera) HasStream() bool {
+	return len(cam.iodev.streams) != 0
 }
