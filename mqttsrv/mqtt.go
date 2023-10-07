@@ -10,21 +10,28 @@ import (
 type MqttService struct {
 	database   *gorm.DB
 	connetions []core.MqttConnection
+
+	DeviceService core.DeviceService
+	ActionService core.ActionService
+	WebRTCService core.WebRTCService
 }
 
-func NewService(db *gorm.DB) core.MqttService {
+func NewService(db *gorm.DB, devicesrv core.DeviceService, actionsrv core.ActionService, webrtcsrc core.WebRTCService) core.MqttService {
 	db.AutoMigrate(&core.MqttConnection{})
 
 	var connections []core.MqttConnection
 	db.Find(&connections)
 
 	service := &MqttService{
-		database:   db,
-		connetions: connections,
+		database:      db,
+		connetions:    connections,
+		DeviceService: devicesrv,
+		ActionService: actionsrv,
+		WebRTCService: webrtcsrc,
 	}
 
 	for index := range service.connetions {
-		service.connect(&service.connetions[index])
+		go service.connect(&service.connetions[index])
 	}
 
 	return service
@@ -78,4 +85,19 @@ func (service *MqttService) connect(connection *core.MqttConnection) {
 	connection.Client.SetUsername(connection.Username)
 	connection.Client.SetPassword(connection.Password)
 	connection.Client.Connect()
+	if connection.Client.IsConnected() {
+		service.buildWebRTCListeners(connection.Client, "")
+	}
+}
+
+func (service *MqttService) publish(topic string, message string) {
+	for _, connection := range service.connetions {
+		if connection.Client == nil {
+			continue
+		}
+		if !connection.Client.IsConnected() {
+			continue
+		}
+		connection.Client.Publish(topic, message)
+	}
 }

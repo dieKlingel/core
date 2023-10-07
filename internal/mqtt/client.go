@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+type Message mq.Message
+
 type Client struct {
 	broker        string
 	clientId      string
@@ -14,7 +16,7 @@ type Client struct {
 	password      string
 	autoReconnect bool
 	keepAlive     time.Duration
-	client        *mq.Client
+	client        mq.Client
 	error         error
 }
 
@@ -70,7 +72,7 @@ func (client *Client) SetKeepAlive(keepAlive time.Duration) {
 
 func (client *Client) Connect() Token {
 	if client.client != nil {
-		(*client.client).Disconnect(0)
+		client.client.Disconnect(0)
 	}
 
 	options := mq.NewClientOptions()
@@ -82,9 +84,9 @@ func (client *Client) Connect() Token {
 	options.SetKeepAlive(client.keepAlive)
 
 	c := mq.NewClient(options)
-	client.client = &c
+	client.client = c
 
-	token := (*client.client).Connect()
+	token := client.client.Connect()
 
 	if token.Wait(); token.Error() != nil {
 		client.error = token.Error()
@@ -100,11 +102,20 @@ func (client *Client) Disconnect() {
 		return
 	}
 
-	(*client.client).Disconnect(0)
+	client.client.Disconnect(0)
 	client.client = nil
-
 }
 
 func (client *Client) IsConnected() bool {
-	return (*client.client).IsConnected()
+	return client.client.IsConnected()
+}
+
+func (client *Client) Subscribe(topic string, handler func(self *Client, message Message)) {
+	client.client.Subscribe(topic, 2, func(c mq.Client, m mq.Message) {
+		handler(client, m)
+	})
+}
+
+func (client *Client) Publish(topic string, message string) {
+	client.client.Publish(topic, 2, false, message)
 }
