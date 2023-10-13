@@ -11,7 +11,6 @@ import (
 	"github.com/dieklingel/core/camerasrv"
 	"github.com/dieklingel/core/devicesrv"
 	"github.com/dieklingel/core/httpsrv"
-	"github.com/dieklingel/core/internal/io"
 	"github.com/dieklingel/core/mqttsrv"
 	"github.com/dieklingel/core/signsrv"
 	"github.com/dieklingel/core/usersrv"
@@ -19,10 +18,6 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
-
-var config *Config
-var camera *io.IOInputDevice
-var microphone *io.IOInputDevice
 
 func main() {
 	wd := os.Getenv("DIEKLINGEL_HOME")
