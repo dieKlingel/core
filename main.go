@@ -15,12 +15,14 @@ import (
 	"github.com/dieklingel/core/signsrv"
 	"github.com/dieklingel/core/usersrv"
 	"github.com/dieklingel/core/webrtcsrv"
+	"github.com/tinyzimmer/go-gst/gst"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func main() {
 	wd := os.Getenv("DIEKLINGEL_HOME")
+	gst.Init(nil)
 
 	if len(strings.TrimSpace(wd)) == 0 {
 		log.Printf("the environment variable DIEKLINGEL_HOME is not set")
