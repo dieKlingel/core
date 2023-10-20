@@ -26,10 +26,13 @@ func main() {
 
 	storagesrv := NewStorageService("core.yaml")
 	camerasrv := NewCameraService(storagesrv)
-	_ = NewActionService(storagesrv)
+	actionsrv := NewActionService(storagesrv)
 	httpsrv := NewHttpService(8080, storagesrv, camerasrv)
+	webrtcsrv := NewWebRTCService(camerasrv)
+	mqttsrv := NewMqttService(storagesrv, actionsrv, webrtcsrv)
 
 	httpsrv.Run()
+	mqttsrv.Run()
 
 	// Wait for interruption to exit
 	var sigint = make(chan os.Signal, 1)

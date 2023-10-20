@@ -18,12 +18,12 @@ type Peer struct {
 }
 
 type WebRTCService struct {
-	CameraService core.CameraService
+	CameraService *CameraService
 
 	connections map[string]*Peer
 }
 
-func NewWebRTCService(camerasrv core.CameraService) core.WebRTCService {
+func NewWebRTCService(camerasrv *CameraService) *WebRTCService {
 	return &WebRTCService{
 		CameraService: camerasrv,
 	}
