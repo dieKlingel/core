@@ -1,47 +1,42 @@
-package camerasrv
+package main
 
 import (
 	"log"
+	"sync"
 
-	"github.com/dieklingel/core/internal/core"
 	"github.com/dieklingel/core/internal/io"
-	"gorm.io/gorm"
 )
 
 type CameraService struct {
-	database *gorm.DB
-	camera   io.Camera
+	storageService *StorageService
+
+	camera io.Camera
+	mutex  sync.Mutex
 }
 
 const (
 	DefaultCameraPipeline = "videotestsrc ! video/x-raw, framerate=30/1, width=1280, height=720 ! appsink name=rawsink"
 )
 
-func NewService(db *gorm.DB) core.CameraService {
-	db.AutoMigrate(&CameraServiceSettings{})
-
+func NewCameraService(storageService *StorageService) *CameraService {
 	return &CameraService{
-		database: db,
+		storageService: storageService,
 	}
 }
 
 func (service *CameraService) CameraPipeline() string {
-	settings := CameraServiceSettings{
-		CameraPipeline: DefaultCameraPipeline,
+	pipeline := service.storageService.Read().Media.Camera.Src
+	if len(pipeline) == 0 {
+		return DefaultCameraPipeline
 	}
-	service.database.FirstOrCreate(&settings)
-	return settings.CameraPipeline
-}
 
-func (service *CameraService) SetCameraPipeline(pipeline string) {
-	settings := CameraServiceSettings{
-		CameraPipeline: pipeline,
-	}
-	service.database.FirstOrCreate(&settings)
-	// TODO: shutdown camera and restart, but with migrating all streams
+	return pipeline
 }
 
 func (service *CameraService) NewCameraStream(codec io.CameraCodec) *io.Stream {
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
+
 	if service.camera == nil {
 		camera, err := io.NewCamera(service.CameraPipeline())
 		if err != nil {
@@ -60,6 +55,9 @@ func (service *CameraService) NewCameraStream(codec io.CameraCodec) *io.Stream {
 }
 
 func (service *CameraService) ReleaseCameraStream(stream *io.Stream) {
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
+
 	service.camera.ReleaseStream(stream)
 	if !service.camera.HasStream() {
 		service.camera = nil

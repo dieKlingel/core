@@ -7,17 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dieklingel/core/actionsrv"
-	"github.com/dieklingel/core/camerasrv"
-	"github.com/dieklingel/core/devicesrv"
-	"github.com/dieklingel/core/httpsrv"
-	"github.com/dieklingel/core/mqttsrv"
-	"github.com/dieklingel/core/signsrv"
-	"github.com/dieklingel/core/usersrv"
-	"github.com/dieklingel/core/webrtcsrv"
 	"github.com/tinyzimmer/go-gst/gst"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -34,19 +24,10 @@ func main() {
 	dir, _ := syscall.Getwd()
 	log.Printf("Running in working directory: %s", dir)
 
-	db, err := gorm.Open(sqlite.Open("core.db"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	actionsrv := actionsrv.NewService(db)
-	devicesrv := devicesrv.NewService(db)
-	signsrv := signsrv.NewService(db)
-	usersrv := usersrv.NewService(db)
-	camerasrv := camerasrv.NewService(db)
-	webrtcsrv := webrtcsrv.NewService(camerasrv)
-	mqttsrv := mqttsrv.NewService(db, devicesrv, actionsrv, webrtcsrv)
-	httpsrv := httpsrv.NewService(8080, actionsrv, devicesrv, signsrv, usersrv, camerasrv, mqttsrv)
+	storagesrv := NewStorageService("core.yaml")
+	camerasrv := NewCameraService(storagesrv)
+	_ = NewActionService(storagesrv)
+	httpsrv := NewHttpService(8080, storagesrv, camerasrv)
 
 	httpsrv.Run()
 
