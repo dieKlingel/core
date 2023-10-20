@@ -1,13 +1,57 @@
-package mqttsrv
+package main
 
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/dieklingel/core/internal/core"
 	"github.com/dieklingel/core/internal/mqtt"
 	"github.com/pion/webrtc/v3"
 )
+
+type MqttService struct {
+	storageService *StorageService
+	actionService  core.ActionService
+	webRTCService  core.WebRTCService
+
+	client *mqtt.Client
+}
+
+func NewMqttService(storageService *StorageService, actionsrv core.ActionService, webrtcsrc core.WebRTCService) *MqttService {
+	return &MqttService{
+		storageService: storageService,
+		actionService:  actionsrv,
+		webRTCService:  webrtcsrc,
+	}
+}
+
+func (mqttService *MqttService) Run() {
+	if mqttService.client != nil {
+		mqttService.client.Disconnect()
+	}
+
+	config := mqttService.storageService.Read()
+	url := config.Mqtt.Server
+	username := config.Mqtt.Username
+	password := config.Mqtt.Password
+
+	mqttService.client = mqtt.NewClient()
+	mqttService.client.SetAutoReconnect(true)
+	mqttService.client.SetBroker(url)
+	mqttService.client.SetUsername(username)
+	mqttService.client.SetPassword(password)
+	go func() {
+		mqttService.client.Connect()
+
+		for !mqttService.client.IsConnected() {
+			time.Sleep(10 * time.Second)
+			mqttService.client.Connect()
+		}
+
+		mqttService.buildWebRTCListeners(mqttService.client, "")
+	}()
+}
 
 func (service *MqttService) buildWebRTCListeners(client *mqtt.Client, prefix string) {
 	type Headers struct {
@@ -42,7 +86,7 @@ func (service *MqttService) buildWebRTCListeners(client *mqtt.Client, prefix str
 			return
 		}
 
-		peer, answer := service.WebRTCService.NewConnection(req.Body.SessionDescription, core.PeerHooks{
+		peer, answer := service.webRTCService.NewConnection(req.Body.SessionDescription, core.PeerHooks{
 			OnCandidate: func(p core.Peer, i webrtc.ICECandidateInit) {
 				message := ConnectionCandidateMessage{
 					Headers: Headers{
@@ -91,12 +135,12 @@ func (service *MqttService) buildWebRTCListeners(client *mqtt.Client, prefix str
 			return
 		}
 
-		peer := service.WebRTCService.GetConnectionById(req.Headers.SessionId)
+		peer := service.webRTCService.GetConnectionById(req.Headers.SessionId)
 		if peer == nil {
 			return
 		}
 
-		service.WebRTCService.CloseConnection(peer)
+		service.webRTCService.CloseConnection(peer)
 	})
 
 	client.Subscribe(prefix+"/connections/candidate", func(self *mqtt.Client, message mqtt.Message) {
@@ -106,11 +150,11 @@ func (service *MqttService) buildWebRTCListeners(client *mqtt.Client, prefix str
 			return
 		}
 
-		peer := service.WebRTCService.GetConnectionById(req.Headers.SessionId)
+		peer := service.webRTCService.GetConnectionById(req.Headers.SessionId)
 		if peer == nil {
 			return
 		}
 
-		service.WebRTCService.AddICECandidate(peer, req.Body.IceCandidate)
+		service.webRTCService.AddICECandidate(peer, req.Body.IceCandidate)
 	})
 }

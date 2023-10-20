@@ -1,4 +1,4 @@
-package webrtcsrv
+package main
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ type WebRTCService struct {
 	connections map[string]*Peer
 }
 
-func NewService(camerasrv core.CameraService) core.WebRTCService {
+func NewWebRTCService(camerasrv core.CameraService) core.WebRTCService {
 	return &WebRTCService{
 		CameraService: camerasrv,
 	}
@@ -116,6 +116,7 @@ func (service *WebRTCService) CloseConnection(peer *core.Peer) {
 			service.CameraService.ReleaseCameraStream(p.videostream)
 		}
 		if p.audiostream != nil {
+			// TODO: release audio stream
 		}
 	}
 }
