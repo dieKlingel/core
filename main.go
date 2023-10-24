@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 	"os"
-	"os/signal"
 	"strings"
 	"syscall"
 
 	"github.com/tinyzimmer/go-gst/gst"
+	"go.uber.org/fx"
 )
 
 func main() {
@@ -24,20 +24,18 @@ func main() {
 	dir, _ := syscall.Getwd()
 	log.Printf("Running in working directory: %s", dir)
 
-	storagesrv := NewStorageService("core.yaml")
-	camerasrv := NewCameraService(storagesrv)
-	actionsrv := NewActionService(storagesrv)
-	httpsrv := NewHttpService(8080, storagesrv, camerasrv)
-	webrtcsrv := NewWebRTCService(camerasrv)
-	mqttsrv := NewMqttService(storagesrv, actionsrv, webrtcsrv)
-
-	httpsrv.Run()
-	mqttsrv.Run()
-
-	// Wait for interruption to exit
-	var sigint = make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
-	<-sigint
-
-	// TODO: cleanup
+	fx.New(
+		fx.Provide(
+			NewFxStorageService,
+			NewFxCameraService,
+			NewFxActionService,
+			NewFxHttpService,
+			NewFxWebRTCService,
+			NewFxMqttService,
+		),
+		fx.Invoke(func(h *HttpService, m *MqttService) {
+			h.Run()
+			m.Run()
+		}),
+	).Run()
 }
