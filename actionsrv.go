@@ -5,16 +5,18 @@ import (
 	"log"
 	"os/exec"
 	"regexp"
+
+	"github.com/dieklingel/core/internal/core"
 )
 
 type ActionService struct {
-	storageService *StorageService
+	storageService core.StorageService
 	handlers       map[string][]ActionHandler
 }
 
 type ActionHandler func(env map[string]string)
 
-func NewActionService(storageService *StorageService) *ActionService {
+func NewActionService(storageService core.StorageService) *ActionService {
 	return &ActionService{
 		storageService: storageService,
 	}
@@ -48,9 +50,9 @@ func (actionService *ActionService) Execute(pattern string, env map[string]strin
 		var command *exec.Cmd
 
 		switch action.Environment {
-		case ActionExecutionEnvironmentBash:
+		case core.ActionExecutionEnvironmentBash:
 			command = exec.Command("bash", "-c", action.Script)
-		case ActionExecutionEnvironmentPython:
+		case core.ActionExecutionEnvironmentPython:
 			command = exec.Command("python3", "-c", action.Script)
 		default:
 			log.Printf("the execution environment %s is not supported", action.Environment)

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/dieklingel/core/internal/core"
 	"gopkg.in/yaml.v3"
 )
 
@@ -16,15 +17,15 @@ func NewStorageService(filename string) *StorageService {
 	}
 }
 
-func (storageService StorageService) Read() *Configuration {
-	configuration := Configuration{}
+func (storageService StorageService) Read() *core.Configuration {
+	configuration := core.Configuration{}
 	file, err := os.Open(storageService.filename)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	if err := yaml.NewDecoder(file).Decode(storageService); err != nil {
-		panic(configuration)
+	if err := yaml.NewDecoder(file).Decode(&configuration); err != nil {
+		panic(err)
 	}
 
 	return &configuration

@@ -4,11 +4,12 @@ import (
 	"log"
 	"sync"
 
+	"github.com/dieklingel/core/internal/core"
 	"github.com/dieklingel/core/internal/io"
 )
 
 type CameraService struct {
-	storageService *StorageService
+	storageService core.StorageService
 
 	camera io.Camera
 	mutex  sync.Mutex
@@ -18,7 +19,7 @@ const (
 	DefaultCameraPipeline = "videotestsrc ! video/x-raw, framerate=30/1, width=1280, height=720 ! appsink name=rawsink"
 )
 
-func NewCameraService(storageService *StorageService) *CameraService {
+func NewCameraService(storageService core.StorageService) *CameraService {
 	return &CameraService{
 		storageService: storageService,
 	}
