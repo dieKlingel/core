@@ -37,6 +37,7 @@ func main() {
 			NewFxActionService,
 			NewFxHttpService,
 			NewFxWebRTCService,
+			NewFxAppService,
 			NewFxMqttService,
 		),
 		fx.Provide(pluginProviderFuncs...),

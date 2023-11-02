@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,15 +15,17 @@ type MqttService struct {
 	storageService core.StorageService
 	actionService  *ActionService
 	webRTCService  *WebRTCService
+	appService     core.AppService
 
 	client *mqtt.Client
 }
 
-func NewMqttService(storageService core.StorageService, actionsrv *ActionService, webrtcsrc *WebRTCService) *MqttService {
+func NewMqttService(storageService core.StorageService, actionsrv *ActionService, webrtcsrc *WebRTCService, appService core.AppService) *MqttService {
 	return &MqttService{
 		storageService: storageService,
 		actionService:  actionsrv,
 		webRTCService:  webrtcsrc,
+		appService:     appService,
 	}
 }
 
@@ -45,15 +48,16 @@ func (mqttService *MqttService) Run() {
 		mqttService.client.Connect()
 
 		for !mqttService.client.IsConnected() {
+			fmt.Printf("could not connect to %s; retry in 10 src", url)
 			time.Sleep(10 * time.Second)
 			mqttService.client.Connect()
 		}
 
-		mqttService.buildWebRTCListeners(mqttService.client, "")
+		mqttService.buildListeners(mqttService.client, "")
 	}()
 }
 
-func (service *MqttService) buildWebRTCListeners(client *mqtt.Client, prefix string) {
+func (service *MqttService) buildListeners(client *mqtt.Client, prefix string) {
 	type Headers struct {
 		SenderDeviceId  string `json:"senderDeviceId"`
 		SenderSessionId string `json:"senderSessionId"`
@@ -156,5 +160,40 @@ func (service *MqttService) buildWebRTCListeners(client *mqtt.Client, prefix str
 		}
 
 		service.webRTCService.AddICECandidate(peer, req.Body.IceCandidate)
+	})
+
+	client.Subscribe(prefix+"/apps/add", func(self *mqtt.Client, message mqtt.Message) {
+		type Request struct {
+			Headers struct {
+				SenderDeviceId string `json:"senderDeviceId"`
+			} `json:"headers"`
+			Body struct {
+				Token string `json:"token"`
+			} `json:"body"`
+		}
+
+		var req Request
+		if err := json.Unmarshal(message.Payload(), &req); err != nil {
+			fmt.Printf("could not parse the AppsAddMessage; error: %v", err)
+			return
+		}
+
+		service.appService.Register(req.Headers.SenderDeviceId, req.Body.Token)
+	})
+
+	client.Subscribe(prefix+"/apps/remove", func(self *mqtt.Client, message mqtt.Message) {
+		type Request struct {
+			Headers struct {
+				SenderDeviceId string `json:"senderDeviceId"`
+			} `json:"headers"`
+		}
+
+		var req Request
+		if err := json.Unmarshal(message.Payload(), &req); err != nil {
+			fmt.Printf("could not parse the AppsRemoveMessage; error: %v", err)
+			return
+		}
+
+		service.appService.Unregister(req.Headers.SenderDeviceId)
 	})
 }

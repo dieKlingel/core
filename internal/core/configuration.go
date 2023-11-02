@@ -8,6 +8,7 @@ type Configuration struct {
 	Mqtt    MqttConfiguration  `yaml:"mqtt"`
 	Plugins yaml.Node          `yaml:"plugins"`
 	Media   MediaConfiguration `yaml:"media"`
+	Redis   RedisConfiguration `yaml:"redis"`
 }
 
 type SipConfiguration struct {
@@ -26,4 +27,8 @@ type MediaConfiguration struct {
 	Camera struct {
 		Src string `yaml:"src"`
 	} `yaml:"camera"`
+}
+
+type RedisConfiguration struct {
+	Host string `yaml:"host"`
 }

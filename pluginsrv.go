@@ -21,7 +21,7 @@ func NewPluginService(storageService *StorageService) *PluginService {
 func (pluginService *PluginService) LoadPluginProviderFunctions() []any {
 	providerFuncs := make([]any, 0)
 
-	plugin, err := plugin.Open("plugins/ruler/ruler.so")
+	/*plugin, err := plugin.Open("plugins/ruler/ruler.so")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -31,7 +31,7 @@ func (pluginService *PluginService) LoadPluginProviderFunctions() []any {
 		panic(err.Error())
 	}
 	pluginService.plugins = append(pluginService.plugins, plugin)
-	providerFuncs = append(providerFuncs, newServiceFunc)
+	providerFuncs = append(providerFuncs, newServiceFunc)*/
 
 	return providerFuncs
 }
