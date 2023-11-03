@@ -17,4 +17,5 @@ type Action struct {
 
 type ActionService interface {
 	Register(trigger string, handler ActionHandler)
+	Execute(pattern string, environment map[string]string)
 }

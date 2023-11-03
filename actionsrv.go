@@ -45,6 +45,10 @@ func (actionService *ActionService) Execute(pattern string, env map[string]strin
 
 	actions := actionService.storageService.Read().Actions
 	for _, action := range actions {
+		if !regex.Match([]byte(action.Trigger)) {
+			continue
+		}
+
 		var command *exec.Cmd
 
 		switch action.Environment {
@@ -66,6 +70,6 @@ func (actionService *ActionService) Execute(pattern string, env map[string]strin
 			log.Println(err.Error())
 			continue
 		}
-		log.Println(output)
+		log.Println(string(output))
 	}
 }
