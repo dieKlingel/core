@@ -24,12 +24,6 @@ func main() {
 	dir, _ := syscall.Getwd()
 	log.Printf("Running in working directory: %s", dir)
 
-	storageService := NewStorageService("core.yaml")
-	plguinsrv := NewPluginService(storageService)
-
-	pluginProviderFuncs := plguinsrv.LoadPluginProviderFunctions()
-	pluginInitFuncs := plguinsrv.LoadPluginInitalizer()
-
 	app := fx.New(
 		fx.Provide(
 			NewFxStorageService,
@@ -37,17 +31,14 @@ func main() {
 			NewFxActionService,
 			NewFxHttpService,
 			NewFxWebRTCService,
-			NewFxAppService,
 			NewFxMqttService,
 		),
-		fx.Provide(pluginProviderFuncs...),
 		fx.Invoke(
 			func(h *HttpService, m *MqttService) {
 				h.Run()
 				m.Run()
 			},
 		),
-		fx.Invoke(pluginInitFuncs...),
 	)
 	app.Run()
 }

@@ -17,7 +17,7 @@ func NewFxHttpService(lc fx.Lifecycle, storageService core.StorageService, camer
 	return NewHttpService(8080, storageService, cameraService)
 }
 
-func NewFxActionService(lc fx.Lifecycle, storageService core.StorageService) *ActionService {
+func NewFxActionService(lc fx.Lifecycle, storageService core.StorageService) core.ActionService {
 	return NewActionService(storageService)
 }
 
@@ -25,14 +25,10 @@ func NewFxWebRTCService(lc fx.Lifecycle, cameraService *CameraService) *WebRTCSe
 	return NewWebRTCService(cameraService)
 }
 
-func NewFxMqttService(lc fx.Lifecycle, storageService core.StorageService, actionService *ActionService, webrtcService *WebRTCService, appService core.AppService) *MqttService {
+func NewFxMqttService(lc fx.Lifecycle, storageService core.StorageService, actionService core.ActionService, webrtcService *WebRTCService, appService core.AppService) *MqttService {
 	return NewMqttService(storageService, actionService, webrtcService, appService)
 }
 
 func NewFxPluginService(lc fx.Lifecycle, storageService *StorageService) *PluginService {
 	return NewPluginService(storageService)
-}
-
-func NewFxAppService(lc fx.Lifecycle, storageService core.StorageService) core.AppService {
-	return NewAppService(storageService)
 }

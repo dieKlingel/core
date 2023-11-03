@@ -13,14 +13,14 @@ import (
 
 type MqttService struct {
 	storageService core.StorageService
-	actionService  *ActionService
+	actionService  core.ActionService
 	webRTCService  *WebRTCService
 	appService     core.AppService
 
 	client *mqtt.Client
 }
 
-func NewMqttService(storageService core.StorageService, actionsrv *ActionService, webrtcsrc *WebRTCService, appService core.AppService) *MqttService {
+func NewMqttService(storageService core.StorageService, actionsrv core.ActionService, webrtcsrc *WebRTCService, appService core.AppService) *MqttService {
 	return &MqttService{
 		storageService: storageService,
 		actionService:  actionsrv,

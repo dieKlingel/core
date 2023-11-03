@@ -11,10 +11,8 @@ import (
 
 type ActionService struct {
 	storageService core.StorageService
-	handlers       map[string][]ActionHandler
+	handlers       map[string][]core.ActionHandler
 }
-
-type ActionHandler func(env map[string]string)
 
 func NewActionService(storageService core.StorageService) *ActionService {
 	return &ActionService{
@@ -22,9 +20,9 @@ func NewActionService(storageService core.StorageService) *ActionService {
 	}
 }
 
-func (actionService *ActionService) Register(trigger string, handler ActionHandler) {
+func (actionService *ActionService) Register(trigger string, handler core.ActionHandler) {
 	if _, exists := actionService.handlers[trigger]; !exists {
-		actionService.handlers[trigger] = make([]ActionHandler, 0)
+		actionService.handlers[trigger] = make([]core.ActionHandler, 0)
 	}
 
 	actionService.handlers[trigger] = append(actionService.handlers[trigger], handler)
