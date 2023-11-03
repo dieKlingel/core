@@ -1,0 +1,29 @@
+actions:
+  - trigger: "unlock"
+    environment: bash
+    script: |
+      echo "Hallo Welt!"
+  - trigger: "ring"
+    environment: python
+    script: |
+      print('Hallo Welt!')
+
+
+mqtt:
+  server: mqtt://localhost:1883/
+  username: guest
+  password: guest
+
+media:
+  camera:
+    src: ""
+  audio:
+    src: ""
+    sink: ""
+
+rtc:
+  ice-servers:
+    - urls: stun:stun1.l.google.com:19302
+    - urls: stun:stun1.l.google.com:19302
+      username: ""
+      credentials: ""
