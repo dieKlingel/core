@@ -1,14 +1,14 @@
-name: Checks if the current version in the snapcraft.yaml already exists as tag.
+name: Create a tag, with the name of the current version, specified in snapcraft.yaml
 on:
-  pull_request:
+  push:
     branches:
       - main
 jobs:
-  check-version:
+  create-tag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: check current version
+      - name: get current version
         run: |
             VERSION_TAG=v$(cat snap/snapcraft.yaml | grep -Po '(?<=version:\s)(.*)')
             echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
@@ -21,6 +21,10 @@ jobs:
       - name: compare tags
         run: |
             if [ "${{ steps.tag.outputs.exists }}" == "true" ]; then
-              echo "tag already exists"
-              exit 1
+              echo "tag already exists, no need to create a new release"
+              exit 0
             fi
+      - uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ env.VERSION_TAG }}
+          message: "tag created: ${{ env.VERSION_TAG }}"
