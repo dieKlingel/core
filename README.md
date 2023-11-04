@@ -17,20 +17,24 @@ Configure the core
 ```bash
 sudo set install dieklingel-core core="
 actions:
-  - trigger: ring
-    lane: python3 ./scripts/push-notification.py
-  - trigger: unlock2
-    lane: |
-     touch hallo.txt
-     echo unlock2 > hallo.txt 
+  - trigger: "unlock"
+    environment: bash
+    script: |
+      echo "Hallo Welt!"
+  - trigger: "ring"
+    environment: python
+    script: |
+      print('Hallo Welt!')
 
 media:
-  video-src: autovideosrc ! video/x-raw, width=1280, height=720, framerate=30/1 ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! appsink name=h264sink
-  audio-src: autoaudiosrc ! audioconvert ! opusenc ! appsink name=opussink
-  audio-sink: appsrc format=time do-timestamp=true name=opussrc ! application/x-rtp, payload=127, encoding-name=OPUS ! rtpopusdepay ! decodebin ! autoaudiosink
+  video:
+    src: autovideosrc ! video/x-raw, width=1280, height=720, framerate=30/1 ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! appsink name=h264sink
+  audio:
+    src: autoaudiosrc ! audioconvert ! opusenc ! appsink name=opussink
+    sink: appsrc format=time do-timestamp=true name=opussrc ! application/x-rtp, payload=127, encoding-name=OPUS ! rtpopusdepay ! decodebin ! autoaudiosink
 
 mqtt:
-  uri: mqtt://server.dieklingel.com:1883/dieklingel/mayer/kai/
+  uri: mqtt://server.dieklingel.com:1883
   username: ''
   password: ''
 
@@ -38,8 +42,8 @@ rtc:
   ice-servers:
     - urls: stun:stun1.l.google.com:19302
     - urls: stun:stun1.l.google.com:19302
-      username: adsa
-      credentials: ada
+      username: ''
+      credentials: ''
 "
 ```
 
@@ -49,6 +53,39 @@ Run the core
 sudo snap set dieklingel-core daemon=true
 ```
 
-## TODO
+## Roadmap
 
-- add libcamera support
+### streamer boy -- 0.3.1 (release: 2023-09-15)
+
+- [x] mjpeg api for video
+
+### new born baby -- 0.3.2 (release: ?)
+
+- [x] establish a call over mqtt
+- [x] execute actions over mqtt
+- [x] use bash or python as action environment
+- [ ] add microphone support
+
+### app combat -- 0.4.0 (release: ?)
+
+- [ ] add db support for devices/apps
+- [ ] allow to push mqtt topics to inactive devices/apps
+- [ ] store devices by last-will-topic (inactive message)
+
+### environment explorer -- 0.5.0 (release: ?)
+
+- [ ] emit events on well-known actions
+- [ ] add gpio (Raspberry Pi) support
+
+### camera combat -- 0.6.0 (release: ?)
+
+- [ ] add rtsp support
+- [ ] save camera capture on movement
+
+### call a friend -- 0.7.0 (release: ?)
+
+- [ ] add sip support
+
+### Future Versions
+
+- [ ] add libcamera support
