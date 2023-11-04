@@ -1,15 +1,6 @@
 version: "3.9"
 
 services:
-  asterisk:
-    build: ./asterisk
-    ports:
-      - 5060:5060
-      - 5060:5060/udp
-      - 5061:5061
-    volumes:
-      - ./asterisk/asterisk:/etc/asterisk
-
   rabbitmq:
     image: rabbitmq:3-management-alpine
     ports:
