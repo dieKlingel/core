@@ -50,7 +50,7 @@ func (mqttService *MqttService) Run() {
 			mqttService.client.Connect()
 		}
 
-		mqttService.buildListeners(mqttService.client, "")
+		mqttService.buildListeners(mqttService.client, username)
 	}()
 }
 
