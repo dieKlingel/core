@@ -13,6 +13,10 @@ func NewFxCameraService(lc fx.Lifecycle, storageService core.StorageService) *Ca
 	return NewCameraService(storageService)
 }
 
+func NewFxAudioService(lc fx.Lifecycle, storageService core.StorageService) core.AudioService {
+	return NewAudioService(storageService)
+}
+
 func NewFxHttpService(lc fx.Lifecycle, storageService core.StorageService, cameraService *CameraService) *HttpService {
 	return NewHttpService(8080, storageService, cameraService)
 }
@@ -21,8 +25,8 @@ func NewFxActionService(lc fx.Lifecycle, storageService core.StorageService) cor
 	return NewActionService(storageService)
 }
 
-func NewFxWebRTCService(lc fx.Lifecycle, cameraService *CameraService) *WebRTCService {
-	return NewWebRTCService(cameraService)
+func NewFxWebRTCService(lc fx.Lifecycle, cameraService *CameraService, audioService core.AudioService) *WebRTCService {
+	return NewWebRTCService(cameraService, audioService)
 }
 
 func NewFxMqttService(lc fx.Lifecycle, storageService core.StorageService, actionService core.ActionService, webrtcService *WebRTCService) *MqttService {

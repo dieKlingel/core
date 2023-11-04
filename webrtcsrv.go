@@ -19,13 +19,15 @@ type Peer struct {
 
 type WebRTCService struct {
 	CameraService *CameraService
+	audioService  core.AudioService
 
 	connections map[string]*Peer
 }
 
-func NewWebRTCService(camerasrv *CameraService) *WebRTCService {
+func NewWebRTCService(camerasrv *CameraService, audioService core.AudioService) *WebRTCService {
 	return &WebRTCService{
 		CameraService: camerasrv,
+		audioService:  audioService,
 	}
 }
 
@@ -76,7 +78,29 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 	}()
 
 	// audiotrack
-	// TODO: audiotrack
+	audiotrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, fmt.Sprintf("audio-%s", uuid.New().String()), "pion-audio")
+	if err != nil {
+		panic(err)
+	}
+	_, err = peerConnection.AddTrack(audiotrack)
+	if err != nil {
+		println("could not add track" + err.Error())
+	}
+	audiostream := service.audioService.NewMicrophoneStream(io.OpusAudioCodec)
+
+	go func() {
+		for {
+			select {
+			case sample := <-audiostream.Frame:
+				audiotrack.WriteSample(media.Sample{
+					Data:     sample.GetBuffer().Bytes(),
+					Duration: sample.GetBuffer().Duration(),
+				})
+			case <-audiostream.Finished:
+				return
+			}
+		}
+	}()
 
 	peerConnection.OnICECandidate(func(i *webrtc.ICECandidate) {
 		if hooks.OnCandidate != nil {
@@ -116,7 +140,7 @@ func (service *WebRTCService) CloseConnection(peer *core.Peer) {
 			service.CameraService.ReleaseCameraStream(p.videostream)
 		}
 		if p.audiostream != nil {
-			// TODO: release audio stream
+			service.audioService.ReleaseMicrophoneStream(p.audiostream)
 		}
 	}
 }

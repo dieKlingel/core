@@ -1,13 +1,5 @@
 package io
 
-type CameraCodec string
-
-const (
-	X264CameraCodec  CameraCodec = ""
-	RawCameraCodec   CameraCodec = ""
-	MJPEGCameraCodec CameraCodec = "appsrc name=src ! videoconvert ! jpegenc ! appsink sync=false name=sink"
-)
-
 type Camera interface {
 	NewStream(codec CameraCodec) (*Stream, error)
 	ReleaseStream(stream *Stream)

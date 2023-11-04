@@ -64,7 +64,7 @@ sudo snap set dieklingel-core daemon=true
 - [x] establish a call over mqtt
 - [x] execute actions over mqtt
 - [x] use bash or python as action environment
-- [ ] add microphone support
+- [x] add microphone support
 
 ### app combat -- 0.4.0 (release: ?)
 

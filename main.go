@@ -28,6 +28,7 @@ func main() {
 		fx.Provide(
 			NewFxStorageService,
 			NewFxCameraService,
+			NewFxAudioService,
 			NewFxActionService,
 			NewFxHttpService,
 			NewFxWebRTCService,

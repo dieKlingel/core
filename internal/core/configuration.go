@@ -27,6 +27,9 @@ type MediaConfiguration struct {
 	Camera struct {
 		Src string `yaml:"src"`
 	} `yaml:"camera"`
+	Audio struct {
+		Src string `yaml:"src"`
+	} `yaml:"audio"`
 }
 
 type RedisConfiguration struct {
