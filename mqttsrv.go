@@ -62,25 +62,25 @@ func (service *MqttService) buildListeners(client *mqtt.Client, prefix string) {
 	}
 
 	type Body struct {
-		SessionDescription webrtc.SessionDescription `json:"sessionDescription,omitempty"`
-		IceCandidate       webrtc.ICECandidateInit   `json:"iceCandidate,omitempty"`
+		SessionDescription webrtc.SessionDescription `json:"sessionDescription"`
+		IceCandidate       webrtc.ICECandidateInit   `json:"iceCandidate"`
 	}
 
 	type ConnectionDescriptionMessage struct {
-		Headers Headers `json:"headers"`
-		Body    Body    `json:"body,omitempty"`
+		Headers Headers `json:"header"`
+		Body    Body    `json:"body"`
 	}
 
 	type ConnectionCandidateMessage struct {
-		Headers Headers `json:"headers"`
+		Headers Headers `json:"header"`
 		Body    Body    `json:"body"`
 	}
 
 	type ConnectionCloseMessage struct {
-		Headers Headers `json:"headers"`
+		Headers Headers `json:"header"`
 	}
 
-	client.Subscribe(prefix+"/connections/create", func(self *mqtt.Client, message mqtt.Message) {
+	client.Subscribe(prefix+"/connections/offer", func(self *mqtt.Client, message mqtt.Message) {
 		var req ConnectionDescriptionMessage
 		if err := json.Unmarshal(message.Payload(), &req); err != nil {
 			log.Println(err.Error())

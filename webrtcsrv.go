@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/dieklingel/core/internal/core"
@@ -28,6 +29,8 @@ func NewWebRTCService(camerasrv *CameraService, audioService core.AudioService) 
 	return &WebRTCService{
 		CameraService: camerasrv,
 		audioService:  audioService,
+
+		connections: make(map[string]*Peer),
 	}
 }
 
@@ -103,6 +106,10 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 	}()
 
 	peerConnection.OnICECandidate(func(i *webrtc.ICECandidate) {
+		if i == nil {
+			log.Println("ice candidate was nil")
+			return
+		}
 		if hooks.OnCandidate != nil {
 			hooks.OnCandidate(peer, i.ToJSON())
 		}
@@ -143,4 +150,5 @@ func (service *WebRTCService) CloseConnection(peer *core.Peer) {
 			service.audioService.ReleaseMicrophoneStream(p.audiostream)
 		}
 	}
+	delete(service.connections, peer.Id)
 }
