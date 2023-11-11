@@ -3,7 +3,7 @@ module github.com/dieklingel/core
 go 1.18
 
 require (
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.4.0
 	github.com/gorilla/mux v1.8.0
 	github.com/pion/webrtc/v3 v3.2.11
 	go.uber.org/fx v1.20.1
