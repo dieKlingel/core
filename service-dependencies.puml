@@ -1,0 +1,38 @@
+@startuml
+interface ActionService
+interface HttpService
+interface MqttService
+interface WebRTCService
+interface SignService
+interface RoleService
+interface UserService
+interface MicrophoneService
+interface CameraService
+interface DeviceService
+
+entity Database
+
+HttpService --> ActionService
+HttpService --> MqttService
+HttpService --> CameraService
+HttpService --> UserService
+HttpService --> DeviceService
+HttpService --> SignService
+HttpService --> RoleService
+
+MqttService --> ActionService
+MqttService --> DeviceService
+MqttService --> WebRTCService
+
+UserService --> RoleService
+
+WebRTCService --> CameraService
+WebRTCService --> MicrophoneService
+
+SignService --> Database
+ActionService --> Database 
+DeviceService --> Database
+UserService --> Database
+RoleService --> Database
+
+@enduml

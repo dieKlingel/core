@@ -1,34 +1,66 @@
 package main
 
 import (
-	"encoding/base64"
-	"path"
+	"log"
+	"sync"
 
+	"github.com/dieklingel/core/internal/core"
 	"github.com/dieklingel/core/internal/io"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-func RegisterCameraHandler(prefix string, client mqtt.Client) {
-	Register(client, path.Join(prefix, "snapshot"), onSnapshot)
+type CameraService struct {
+	storageService core.StorageService
+
+	camera io.Camera
+	mutex  sync.Mutex
 }
 
-func onSnapshot(c mqtt.Client, req Request) Response {
-	if camera == nil {
-		return NewResponseFromString("the camera was not created succesfully, chech your logs for more information", 500)
+const (
+	DefaultCameraPipeline = "videotestsrc ! video/x-raw, framerate=30/1, width=1280, height=720 ! appsink name=rawsink"
+)
+
+func NewCameraService(storageService core.StorageService) *CameraService {
+	return &CameraService{
+		storageService: storageService,
+	}
+}
+
+func (service *CameraService) CameraPipeline() string {
+	pipeline := service.storageService.Read().Media.Camera.Src
+	if len(pipeline) == 0 {
+		return DefaultCameraPipeline
 	}
 
-	stream, err := io.NewStream("appsrc name=src ! videoconvert ! pngenc ! appsink sync=false name=sink")
+	return pipeline
+}
+
+func (service *CameraService) NewCameraStream(codec io.CameraCodec) *io.Stream {
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
+
+	if service.camera == nil {
+		camera, err := io.NewCamera(service.CameraPipeline())
+		if err != nil {
+			log.Println(err.Error())
+			return nil
+		}
+		service.camera = camera
+	}
+
+	stream, err := service.camera.NewStream(codec)
 	if err != nil {
-		return NewResponseFromString(err.Error(), 500)
+		log.Println(err.Error())
+		return nil
 	}
+	return stream
+}
 
-	camera.AddStream(stream)
+func (service *CameraService) ReleaseCameraStream(stream *io.Stream) {
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 
-	select {
-	case <-stream.Finished:
-		return NewResponseFromString("could not receive a frame from camera", 500)
-	case frame := <-stream.Frame:
-		camera.RemoveStream(stream)
-		return NewResponseFromString("data:image/png;base64,"+base64.StdEncoding.EncodeToString(frame.GetBuffer().Bytes()), 200)
+	service.camera.ReleaseStream(stream)
+	if !service.camera.HasStream() {
+		service.camera = nil
 	}
 }

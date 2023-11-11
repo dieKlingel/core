@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 1883:1883
+      - 9001:9001
+      - 8081:8081
+    volumes:
+      - ./rabbitmq/volumes:/var/lib/rabbitmq/
+      - ./rabbitmq/conf:/etc/rabbitmq/

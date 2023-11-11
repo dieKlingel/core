@@ -1,92 +1,75 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os/exec"
-	"path"
 	"regexp"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/dieklingel/core/internal/core"
 )
 
-func RegisterActionHandler(prefix string, client mqtt.Client) {
-	Register(client, path.Join(prefix), onActions)
-	Register(client, path.Join(prefix, "execute"), onExecuteActions)
+type ActionService struct {
+	storageService core.StorageService
+	handlers       map[string][]core.ActionHandler
 }
 
-func onActions(client mqtt.Client, req Request) Response {
-	config, err := NewConfigFromCurrentDirectory()
-	if err != nil {
-		return NewResponseFromString(fmt.Sprintf("Could not read config: %s", err.Error()), 500)
+func NewActionService(storageService core.StorageService) *ActionService {
+	return &ActionService{
+		storageService: storageService,
 	}
-
-	json, err := json.Marshal(config.Actions)
-	if err != nil {
-		return NewResponseFromString(fmt.Sprintf("Could not serialize actions: %s", err.Error()), 500)
-	}
-
-	return NewResponseFromString(string(json), 200)
 }
 
-func onExecuteActions(client mqtt.Client, req Request) Response {
-	payload := make(map[string]interface{})
-	json.Unmarshal([]byte(req.Body), &payload)
-
-	pattern, ok := payload["pattern"].(string)
-	if !ok {
-		return NewResponseFromString("the pattern has to be of type string", 400)
+func (actionService *ActionService) Register(trigger string, handler core.ActionHandler) {
+	if _, exists := actionService.handlers[trigger]; !exists {
+		actionService.handlers[trigger] = make([]core.ActionHandler, 0)
 	}
 
-	env, ok := payload["environment"].(map[string]interface{})
-	if !ok {
-		return NewResponseFromString("the evironment has to be of type {string: string}", 400)
-	}
-	environment := make(map[string]string)
-	for key, value := range env {
-		environment[key] = fmt.Sprintf("%s", value)
-	}
-
-	actions := ExecuteActionsFromPattern(pattern, environment)
-	json, _ := json.Marshal(actions)
-	return NewResponseFromString(string(json), 200)
+	actionService.handlers[trigger] = append(actionService.handlers[trigger], handler)
 }
 
-func ExecuteActionsFromPattern(pattern string, environment map[string]string) []Action {
-	config, err := NewConfigFromCurrentDirectory()
-	if err != nil {
-		log.Printf("could not execute actions: %s", err.Error())
-		return make([]Action, 0)
-	}
-
+func (actionService *ActionService) Execute(pattern string, env map[string]string) {
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
-		log.Printf("error while compiling regex: %s", err.Error())
-		return make([]Action, 0)
+		log.Println(err.Error())
+		return
 	}
 
-	actions := make([]Action, 0)
-	for _, action := range config.Actions {
-		match := regex.MatchString(action.Trigger)
-		if match {
-			actions = append(actions, action)
-			command := exec.Command("bash", "-c", action.Lane)
-
-			for key, value := range environment {
-				command.Env = append(command.Env, fmt.Sprintf("%s=%s", key, value))
+	for trigger, handlers := range actionService.handlers {
+		if regex.Match([]byte(trigger)) {
+			for _, handler := range handlers {
+				go handler(env)
 			}
-
-			output, err := command.Output()
-			if err != nil {
-				log.Printf("error while running action: %s", err.Error())
-				if exit, ok := err.(*exec.ExitError); ok {
-					log.Printf("\r\n+- Error --+\r\n%s+----------+", exit.Stderr)
-				}
-			}
-			log.Printf("\r\n+- Output -+\r\n%s+----------+", string(output))
 		}
 	}
 
-	return actions
+	actions := actionService.storageService.Read().Actions
+	for _, action := range actions {
+		if !regex.Match([]byte(action.Trigger)) {
+			continue
+		}
+
+		var command *exec.Cmd
+
+		switch action.Environment {
+		case core.ActionExecutionEnvironmentBash:
+			command = exec.Command("bash", "-c", action.Script)
+		case core.ActionExecutionEnvironmentPython:
+			command = exec.Command("python3", "-c", action.Script)
+		default:
+			log.Printf("the execution environment %s is not supported", action.Environment)
+			continue
+		}
+
+		for key, value := range env {
+			command.Env = append(command.Env, fmt.Sprintf("%s=%s", key, value))
+		}
+
+		output, err := command.CombinedOutput()
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		log.Println(string(output))
+	}
 }
