@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  core-rpi4-64:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - MACHINE=raspberrypi4-64
+    volumes:
+      - ./build:/poky/build:rw
