@@ -65,6 +65,7 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 		println("could not add track" + err.Error())
 	}
 	videostream := service.CameraService.NewCameraStream(io.X264CameraCodec)
+	service.connections[peer.Id].videostream = videostream
 
 	go func() {
 		for {
@@ -90,6 +91,7 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 		println("could not add track" + err.Error())
 	}
 	audiostream := service.audioService.NewMicrophoneStream(io.OpusAudioCodec)
+	service.connections[peer.Id].audiostream = audiostream
 
 	go func() {
 		for {
