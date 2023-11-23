@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/google/uuid v1.4.0
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/pion/webrtc/v3 v3.2.11
 	go.uber.org/fx v1.20.1
 	gopkg.in/yaml.v3 v3.0.1
