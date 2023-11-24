@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/dieklingel/core/internal/core"
 	"github.com/dieklingel/core/internal/io"
@@ -73,8 +72,9 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 			case sample := <-videostream.Frame:
 				videotrack.WriteSample(media.Sample{
 					Data:     sample.GetBuffer().Bytes(),
-					Duration: 1 * time.Millisecond, // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
+					Duration: sample.GetBuffer().Duration(), // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
 				})
+				// TODO timeout or emit finish
 			case <-videostream.Finished:
 				return
 			}
@@ -115,6 +115,17 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 		if hooks.OnCandidate != nil {
 			hooks.OnCandidate(peer, i.ToJSON())
 		}
+	})
+
+	peerConnection.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
+		if state == webrtc.ICEConnectionStateDisconnected {
+			if hooks.OnClose != nil {
+				hooks.OnClose(peer)
+			}
+			service.CloseConnection(&peer)
+			return
+		}
+
 	})
 
 	// TODO: on track

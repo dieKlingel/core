@@ -61,6 +61,7 @@ func (dev *IOInputDevice) AddStream(stream *Stream) {
 
 func (dev *IOInputDevice) RemoveStream(stream *Stream) {
 	delete(dev.streams, stream.ID())
+	stream.Finished <- true
 	stream.camera = nil
 	dev.closeSafe()
 }
