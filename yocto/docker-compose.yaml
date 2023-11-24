@@ -8,4 +8,4 @@ services:
     environment:
       - MACHINE=raspberrypi4-64
     volumes:
-      - ./build:/poky/build:rw
+      - .:/srv:rw
