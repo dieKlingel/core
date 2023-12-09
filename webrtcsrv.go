@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/dieklingel/core/audio"
+	"github.com/dieklingel/core/camera"
 	"github.com/dieklingel/core/internal/core"
-	"github.com/dieklingel/core/internal/io"
 	"github.com/google/uuid"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
@@ -13,21 +14,21 @@ import (
 
 type Peer struct {
 	connection  *webrtc.PeerConnection
-	videostream *io.Stream
-	audiostream *io.Stream
+	videostream *camera.CameraStream
+	audiostream *audio.AudioStream
 }
 
 type WebRTCService struct {
-	CameraService *CameraService
-	audioService  core.AudioService
+	camera     *camera.Camera
+	audioInput *audio.AudioInputDevice
 
 	connections map[string]*Peer
 }
 
-func NewWebRTCService(camerasrv *CameraService, audioService core.AudioService) *WebRTCService {
+func NewWebRTCService(camera *camera.Camera, audioInput *audio.AudioInputDevice) *WebRTCService {
 	return &WebRTCService{
-		CameraService: camerasrv,
-		audioService:  audioService,
+		camera:     camera,
+		audioInput: audioInput,
 
 		connections: make(map[string]*Peer),
 	}
@@ -63,19 +64,19 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 	if err != nil {
 		println("could not add track" + err.Error())
 	}
-	videostream := service.CameraService.NewCameraStream(io.X264CameraCodec)
+	videostream := service.camera.Tee(camera.X264CameraCodec)
 	service.connections[peer.Id].videostream = videostream
 
 	go func() {
 		for {
 			select {
-			case sample := <-videostream.Frame:
+			case sample := <-videostream.Frame():
 				videotrack.WriteSample(media.Sample{
 					Data:     sample.GetBuffer().Bytes(),
-					Duration: sample.GetBuffer().Duration(), // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
+					Duration: *sample.GetBuffer().Duration().AsDuration(), // use 1ms, because duration is incorrect when used with libcamerasrc, which is our preffered way
 				})
 				// TODO timeout or emit finish
-			case <-videostream.Finished:
+			case <-videostream.Finished():
 				return
 			}
 		}
@@ -90,18 +91,18 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 	if err != nil {
 		println("could not add track" + err.Error())
 	}
-	audiostream := service.audioService.NewMicrophoneStream(io.OpusAudioCodec)
+	audiostream := service.audioInput.Tee(audio.OpusAudioCodec) //service.audioService.NewMicrophoneStream(io.OpusAudioCodec)
 	service.connections[peer.Id].audiostream = audiostream
 
 	go func() {
 		for {
 			select {
-			case sample := <-audiostream.Frame:
+			case sample := <-audiostream.Frame():
 				audiotrack.WriteSample(media.Sample{
 					Data:     sample.GetBuffer().Bytes(),
-					Duration: sample.GetBuffer().Duration(),
+					Duration: *sample.GetBuffer().Duration().AsDuration(),
 				})
-			case <-audiostream.Finished:
+			case <-audiostream.Finished():
 				return
 			}
 		}
@@ -157,10 +158,10 @@ func (service *WebRTCService) CloseConnection(peer *core.Peer) {
 	if p, exists := service.connections[peer.Id]; exists {
 		p.connection.Close()
 		if p.videostream != nil {
-			service.CameraService.ReleaseCameraStream(p.videostream)
+			p.videostream.FinishAndClose()
 		}
 		if p.audiostream != nil {
-			service.audioService.ReleaseMicrophoneStream(p.audiostream)
+			p.audiostream.FinishAndClose()
 		}
 	}
 	delete(service.connections, peer.Id)

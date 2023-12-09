@@ -6,13 +6,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/tinyzimmer/go-gst/gst"
 	"go.uber.org/fx"
 )
 
 func main() {
 	wd := os.Getenv("DIEKLINGEL_HOME")
-	gst.Init(nil)
 
 	if len(strings.TrimSpace(wd)) == 0 {
 		log.Printf("the environment variable DIEKLINGEL_HOME is not set")
@@ -27,11 +25,11 @@ func main() {
 	app := fx.New(
 		fx.Provide(
 			NewFxStorageService,
-			NewFxCameraService,
-			NewFxAudioService,
+			NewFxCamera,
+			NewFxAudioInput,
 			NewFxActionService,
 			NewFxHttpService,
-			NewFxWebRTCService,
+			NewWebRTCService,
 			NewFxMqttService,
 		),
 		fx.Invoke(
