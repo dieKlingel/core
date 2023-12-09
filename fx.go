@@ -32,8 +32,8 @@ func NewFxCamera() *camera.Camera {
 	return camera
 }
 
-func NewFxAudioInput() *audio.AudioInputDevice {
-	input, err := audio.NewAudioInputDevice("audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink")
+func NewFxAudioInput() *audio.Input {
+	input, err := audio.NewInput("audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink")
 	if err != nil {
 		panic(err)
 	}

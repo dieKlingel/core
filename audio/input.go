@@ -7,21 +7,21 @@ import (
 	"github.com/go-gst/go-gst/gst/app"
 )
 
-type AudioInputDevice struct {
+type Input struct {
 	sink     *app.Sink
 	pipeline *gst.Pipeline
 	streams  map[*AudioStream]struct{}
 }
 
-// NewAudioInputDevice creates a new audio input device from the given
+// NewInput creates a new audio input device from the given
 // pipeline. The pipeline must have exactly one sink element. The sink element
 // will be used to receive audio data from the device.
 //
 // example pipeline:
 //
 //	audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink
-func NewAudioInputDevice(definiton string) (*AudioInputDevice, error) {
-	audioInputDevice := &AudioInputDevice{
+func NewInput(definiton string) (*Input, error) {
+	audioInputDevice := &Input{
 		streams: make(map[*AudioStream]struct{}),
 	}
 
@@ -46,7 +46,7 @@ func NewAudioInputDevice(definiton string) (*AudioInputDevice, error) {
 // Tee creates a new audio stream from the input device. The stream will be
 // encoded with the given codec. The stream will be added to the input device
 // and will receive audio data from the device.
-func (input *AudioInputDevice) Tee(codec AudioCodec) *AudioStream {
+func (input *Input) Tee(codec AudioCodec) *AudioStream {
 	stream := NewAudioStreamFromInput(codec, input)
 	input.streams[stream] = struct{}{}
 

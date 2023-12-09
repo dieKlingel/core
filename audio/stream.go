@@ -14,10 +14,10 @@ type AudioStream struct {
 	sink     *app.Sink
 	source   *app.Source
 	pipeline *gst.Pipeline
-	input    *AudioInputDevice
+	input    *Input
 }
 
-func NewAudioStreamFromInput(codec AudioCodec, input *AudioInputDevice) *AudioStream {
+func NewAudioStreamFromInput(codec AudioCodec, input *Input) *AudioStream {
 	src, pipeline, sink := codec.ToPipelineElements()
 	audioStream := &AudioStream{
 		frame:    make(chan gst.Sample),

@@ -20,12 +20,12 @@ type Peer struct {
 
 type WebRTCService struct {
 	camera     *camera.Camera
-	audioInput *audio.AudioInputDevice
+	audioInput *audio.Input
 
 	connections map[string]*Peer
 }
 
-func NewWebRTCService(camera *camera.Camera, audioInput *audio.AudioInputDevice) *WebRTCService {
+func NewWebRTCService(camera *camera.Camera, audioInput *audio.Input) *WebRTCService {
 	return &WebRTCService{
 		camera:     camera,
 		audioInput: audioInput,
