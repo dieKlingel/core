@@ -13,13 +13,13 @@ import (
 
 type MqttService struct {
 	config        *config.Environment
-	actionService core.ActionService
+	actionService *ActionService
 	webRTCService *WebRTCService
 
 	client *mqtt.Client
 }
 
-func NewMqttService(config *config.Environment, actionsrv core.ActionService, webrtcsrc *WebRTCService) *MqttService {
+func NewMqttService(config *config.Environment, actionsrv *ActionService, webrtcsrc *WebRTCService) *MqttService {
 	return &MqttService{
 		config:        config,
 		actionService: actionsrv,

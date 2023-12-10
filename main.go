@@ -28,10 +28,10 @@ func main() {
 			config.New,
 			NewFxCamera,
 			NewFxAudioInput,
-			NewFxActionService,
+			NewActionService,
 			NewFxHttpService,
 			NewWebRTCService,
-			NewFxMqttService,
+			NewMqttService,
 		),
 		fx.Invoke(
 			func(h *HttpService, m *MqttService) {

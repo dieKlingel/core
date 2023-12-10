@@ -7,10 +7,10 @@ import (
 )
 
 type Environment struct {
-	Action []Action `yaml:"actions"`
-	Mqtt   Mqtt     `yaml:"mqtt"`
-	Rtc    Rtc      `yaml:"rtc"`
-	Media  Media    `yaml:"media"`
+	Actions []Action `yaml:"actions"`
+	Mqtt    Mqtt     `yaml:"mqtt"`
+	Rtc     Rtc      `yaml:"rtc"`
+	Media   Media    `yaml:"media"`
 }
 
 func New() *Environment {
@@ -20,7 +20,7 @@ func New() *Environment {
 	}
 
 	env := &Environment{
-		Action: make([]Action, 0),
+		Actions: make([]Action, 0),
 		Mqtt: Mqtt{
 			Uri:      "mqtt://localhost:1883",
 			Username: "guest",

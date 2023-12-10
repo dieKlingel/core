@@ -6,17 +6,18 @@ import (
 	"os/exec"
 	"regexp"
 
+	"github.com/dieklingel/core/config"
 	"github.com/dieklingel/core/internal/core"
 )
 
 type ActionService struct {
-	storageService core.StorageService
-	handlers       map[string][]core.ActionHandler
+	config   *config.Environment
+	handlers map[string][]core.ActionHandler
 }
 
-func NewActionService(storageService core.StorageService) *ActionService {
+func NewActionService(config *config.Environment) *ActionService {
 	return &ActionService{
-		storageService: storageService,
+		config: config,
 	}
 }
 
@@ -43,7 +44,7 @@ func (actionService *ActionService) Execute(pattern string, env map[string]strin
 		}
 	}
 
-	actions := actionService.storageService.Read().Actions
+	actions := actionService.config.Actions
 	for _, action := range actions {
 		if !regex.Match([]byte(action.Trigger)) {
 			continue
@@ -52,9 +53,9 @@ func (actionService *ActionService) Execute(pattern string, env map[string]strin
 		var command *exec.Cmd
 
 		switch action.Environment {
-		case core.ActionExecutionEnvironmentBash:
+		case config.ActionExecutionEnvironmentBash:
 			command = exec.Command("bash", "-c", action.Script)
-		case core.ActionExecutionEnvironmentPython:
+		case config.ActionExecutionEnvironmentPython:
 			command = exec.Command("python3", "-c", action.Script)
 		default:
 			log.Printf("the execution environment %s is not supported", action.Environment)

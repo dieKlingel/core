@@ -3,21 +3,10 @@ package main
 import (
 	"github.com/dieklingel/core/audio"
 	"github.com/dieklingel/core/camera"
-	"github.com/dieklingel/core/config"
-	"github.com/dieklingel/core/internal/core"
-	"go.uber.org/fx"
 )
 
 func NewFxHttpService(camera *camera.Camera) *HttpService {
 	return NewHttpService(8080, camera)
-}
-
-func NewFxActionService(lc fx.Lifecycle, storageService core.StorageService) core.ActionService {
-	return NewActionService(storageService)
-}
-
-func NewFxMqttService(lc fx.Lifecycle, config *config.Environment, actionService core.ActionService, webrtcService *WebRTCService) *MqttService {
-	return NewMqttService(config, actionService, webrtcService)
 }
 
 func NewFxCamera() *camera.Camera {
