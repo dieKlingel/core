@@ -19,7 +19,7 @@ type Input struct {
 //
 // example pipeline:
 //
-//	audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink
+//	audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink
 func NewInput(definiton string) (*Input, error) {
 	audioInputDevice := &Input{
 		streams: make(map[*AudioStream]struct{}),

@@ -17,7 +17,7 @@ func TestNewAudioInputDeviceEmptyPipeline(t *testing.T) {
 }
 
 func TestNewAudioInputDeviceSuccesfull(t *testing.T) {
-	input, err := audio.NewInput("audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink")
+	input, err := audio.NewInput("audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! {{ DIEKLINGEL_AUDIO_SINK }}")
 	if err != nil {
 		t.Fatalf("expected nil, got %v", err)
 	}

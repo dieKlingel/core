@@ -7,7 +7,7 @@ import (
 )
 
 func TestAudioCodecToPipelineElementsFromOpus(t *testing.T) {
-	source, pipeline, sink := audio.OpusAudioCodec.ToPipelineElements()
+	source, pipeline, sink := audio.OpusEncodeCodec.ToPipelineElements()
 	if source == nil {
 		t.Fatal("source is nil")
 	}

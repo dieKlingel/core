@@ -6,9 +6,11 @@ import (
 )
 
 type AudioCodec string
+type AudioPlayerCodec string
 
 const (
-	OpusAudioCodec AudioCodec = "appsrc name=src ! audioconvert ! opusenc ! appsink sync=false name=sink"
+	OpusEncodeCodec       AudioCodec       = "appsrc name=src ! audioconvert ! opusenc ! appsink sync=false name=sink"
+	OpusDecodePlayerCodec AudioPlayerCodec = "application/x-rtp, payload=127, encoding-name=OPUS ! rtpopusdepay ! decodebin"
 )
 
 func (codec AudioCodec) ToPipelineElements() (*app.Source, *gst.Pipeline, *app.Sink) {

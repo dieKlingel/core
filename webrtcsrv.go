@@ -15,7 +15,8 @@ import (
 type Peer struct {
 	connection  *webrtc.PeerConnection
 	videostream *camera.CameraStream
-	audiostream *audio.AudioStream
+	audioIn     *audio.AudioStream
+	player      *audio.Player
 }
 
 type WebRTCService struct {
@@ -91,8 +92,8 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 	if err != nil {
 		println("could not add track" + err.Error())
 	}
-	audiostream := service.audioInput.Tee(audio.OpusAudioCodec) //service.audioService.NewMicrophoneStream(io.OpusAudioCodec)
-	service.connections[peer.Id].audiostream = audiostream
+	audiostream := service.audioInput.Tee(audio.OpusEncodeCodec) //service.audioService.NewMicrophoneStream(io.OpusAudioCodec)
+	service.connections[peer.Id].audioIn = audiostream
 
 	go func() {
 		for {
@@ -129,7 +130,19 @@ func (service *WebRTCService) NewConnection(offer webrtc.SessionDescription, hoo
 
 	})
 
-	// TODO: on track
+	peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		if track.Kind() == webrtc.RTPCodecTypeAudio && service.connections[peer.Id].player == nil {
+			player, err := audio.NewPlayer(audio.OpusDecodePlayerCodec)
+			if err != nil {
+				println("could not create player" + err.Error())
+				return
+			}
+			service.connections[peer.Id].player = player
+			player.Play(track)
+			return
+		}
+		println("got track, but ignored")
+	})
 
 	peerConnection.SetRemoteDescription(offer)
 	answer, _ := peerConnection.CreateAnswer(&webrtc.AnswerOptions{})
@@ -160,8 +173,11 @@ func (service *WebRTCService) CloseConnection(peer *core.Peer) {
 		if p.videostream != nil {
 			p.videostream.FinishAndClose()
 		}
-		if p.audiostream != nil {
-			p.audiostream.FinishAndClose()
+		if p.audioIn != nil {
+			p.audioIn.FinishAndClose()
+		}
+		if p.player != nil {
+			p.player.Stop()
 		}
 	}
 	delete(service.connections, peer.Id)

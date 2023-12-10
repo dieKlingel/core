@@ -66,15 +66,18 @@ func NewAudioStreamFromInput(codec AudioCodec, input *Input) *AudioStream {
 // Close closes the audio stream. The stream will be removed from the input
 // device and will no longer receive audio data.
 func (stream *AudioStream) Close() {
-	delete(stream.input.streams, stream)
 	close(stream.frame)
 	close(stream.finished)
 	err := stream.pipeline.BlockSetState(gst.StateNull)
 	if err != nil {
 		panic(err)
 	}
-	if len(stream.input.streams) == 0 {
-		stream.input.pipeline.SetState(gst.StateNull)
+
+	if stream.input != nil {
+		if len(stream.input.streams) == 0 {
+			stream.input.pipeline.SetState(gst.StateNull)
+		}
+		delete(stream.input.streams, stream)
 	}
 }
 
@@ -90,6 +93,9 @@ func (stream *AudioStream) Codec() AudioCodec {
 
 // Frame returns a channel of audio frames.
 func (stream *AudioStream) Frame() chan gst.Sample {
+	if stream.input == nil {
+		panic("Frame() can only be called on an input stream")
+	}
 	return stream.frame
 }
 
