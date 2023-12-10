@@ -7,23 +7,20 @@ import (
 	"time"
 
 	"github.com/dieklingel/core/camera"
-	"github.com/dieklingel/core/internal/core"
 	"github.com/gorilla/mux"
 )
 
 type HttpService struct {
-	port           int
-	camera         *camera.Camera
-	storageService core.StorageService
+	port   int
+	camera *camera.Camera
 
 	server *http.Server
 }
 
-func NewHttpService(port int, storageService core.StorageService, camera *camera.Camera) *HttpService {
+func NewHttpService(port int, camera *camera.Camera) *HttpService {
 	return &HttpService{
-		port:           port,
-		camera:         camera,
-		storageService: storageService,
+		port:   port,
+		camera: camera,
 	}
 }
 

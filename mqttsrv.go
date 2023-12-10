@@ -5,52 +5,52 @@ import (
 	"log"
 	"time"
 
+	"github.com/dieklingel/core/config"
 	"github.com/dieklingel/core/internal/core"
 	"github.com/dieklingel/core/internal/mqtt"
 	"github.com/pion/webrtc/v3"
 )
 
 type MqttService struct {
-	storageService core.StorageService
-	actionService  core.ActionService
-	webRTCService  *WebRTCService
+	config        *config.Environment
+	actionService core.ActionService
+	webRTCService *WebRTCService
 
 	client *mqtt.Client
 }
 
-func NewMqttService(storageService core.StorageService, actionsrv core.ActionService, webrtcsrc *WebRTCService) *MqttService {
+func NewMqttService(config *config.Environment, actionsrv core.ActionService, webrtcsrc *WebRTCService) *MqttService {
 	return &MqttService{
-		storageService: storageService,
-		actionService:  actionsrv,
-		webRTCService:  webrtcsrc,
+		config:        config,
+		actionService: actionsrv,
+		webRTCService: webrtcsrc,
 	}
 }
 
-func (mqttService *MqttService) Run() {
-	if mqttService.client != nil {
-		mqttService.client.Disconnect()
+func (service *MqttService) Run() {
+	if service.client != nil {
+		service.client.Disconnect()
 	}
 
-	config := mqttService.storageService.Read()
-	url := config.Mqtt.Server
-	username := config.Mqtt.Username
-	password := config.Mqtt.Password
+	url := service.config.Mqtt.Uri
+	username := service.config.Mqtt.Username
+	password := service.config.Mqtt.Password
 
-	mqttService.client = mqtt.NewClient()
-	mqttService.client.SetAutoReconnect(true)
-	mqttService.client.SetBroker(url)
-	mqttService.client.SetUsername(username)
-	mqttService.client.SetPassword(password)
+	service.client = mqtt.NewClient()
+	service.client.SetAutoReconnect(true)
+	service.client.SetBroker(url)
+	service.client.SetUsername(username)
+	service.client.SetPassword(password)
 	go func() {
-		mqttService.client.Connect()
+		service.client.Connect()
 
-		for !mqttService.client.IsConnected() {
+		for !service.client.IsConnected() {
 			log.Printf("could not connect to %s; retry in 10 src", url)
 			time.Sleep(10 * time.Second)
-			mqttService.client.Connect()
+			service.client.Connect()
 		}
 
-		mqttService.buildListeners(mqttService.client, username)
+		service.buildListeners(service.client, username)
 	}()
 }
 

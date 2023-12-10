@@ -6,6 +6,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dieklingel/core/config"
 	"go.uber.org/fx"
 )
 
@@ -24,7 +25,7 @@ func main() {
 
 	app := fx.New(
 		fx.Provide(
-			NewFxStorageService,
+			config.New,
 			NewFxCamera,
 			NewFxAudioInput,
 			NewFxActionService,
