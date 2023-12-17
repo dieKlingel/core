@@ -2,8 +2,6 @@ module github.com/dieklingel/core
 
 go 1.21
 
-toolchain go1.21.3
-
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/go-gst/go-glib v0.0.0-20231207075824-6d6aaf082c65
