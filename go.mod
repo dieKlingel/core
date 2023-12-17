@@ -6,7 +6,7 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/go-gst/go-glib v0.0.0-20231207075824-6d6aaf082c65
 	github.com/go-gst/go-gst v0.0.0-20231207080415-7f6bb5a2d4c5
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/gorilla/mux v1.8.1
 	github.com/pion/interceptor v0.1.25
 	github.com/pion/webrtc/v3 v3.2.21
