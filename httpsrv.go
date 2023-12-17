@@ -6,69 +6,65 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dieklingel/core/internal/core"
-	"github.com/dieklingel/core/internal/io"
+	"github.com/dieklingel/core/camera"
 	"github.com/gorilla/mux"
 )
 
 type HttpService struct {
-	port           int
-	cameraService  *CameraService
-	storageService core.StorageService
+	port   int
+	camera *camera.Camera
 
 	server *http.Server
 }
 
-func NewHttpService(port int, storageService core.StorageService, cameraService *CameraService) *HttpService {
+func NewHttpService(port int, camera *camera.Camera) *HttpService {
 	return &HttpService{
-		port:           port,
-		cameraService:  cameraService,
-		storageService: storageService,
+		port:   port,
+		camera: camera,
 	}
 }
 
-func (httpService *HttpService) Run() error {
+func (service *HttpService) Run() error {
 	router := mux.NewRouter()
 
 	router.Methods("GET").Path("/camera/snapshot").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		stream := httpService.cameraService.NewCameraStream(io.MJPEGCameraCodec)
+		stream := service.camera.Tee(camera.MJPEGCameraCodec)
 		if stream == nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer httpService.cameraService.ReleaseCameraStream(stream)
 
 		select {
-		case frame := <-stream.Frame:
+		case frame := <-stream.Frame():
 			w.Header().Add("Content-Type", "image/jpeg")
 			img := frame.GetBuffer().Bytes()
 			n, err := w.Write(img)
 			if err != nil || n != len(img) {
-				return
+				break
 			}
 		case <-r.Context().Done():
-			return
+			break
 		case <-time.After(5 * time.Second):
 			log.Println("the http mjpeg stream was closed by timeout of 5 seconds, cause no frame could be received but the connection was still open")
-			return
+			break
 		}
-
+		stream.Close()
 	})
 
 	router.Methods("GET").Path("/camera/stream").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		stream := httpService.cameraService.NewCameraStream(io.MJPEGCameraCodec)
+		stream := service.camera.Tee(camera.MJPEGCameraCodec)
 		if stream == nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer httpService.cameraService.ReleaseCameraStream(stream)
+		defer stream.Close()
 
 		w.Header().Add("Content-Type", "multipart/x-mixed-replace; boundary=frame")
 		boundary := "\r\n--frame\r\nContent-Type: image/jpeg\r\n\r\n"
 
 		for {
 			select {
-			case frame := <-stream.Frame:
+			case frame := <-stream.Frame():
 				img := frame.GetBuffer().Bytes()
 
 				n, err := w.Write([]byte(boundary))
@@ -93,12 +89,12 @@ func (httpService *HttpService) Run() error {
 			}
 		}
 	})
-	httpService.server = &http.Server{
+	service.server = &http.Server{
 		Handler:     router,
-		Addr:        fmt.Sprintf(":%d", httpService.port),
+		Addr:        fmt.Sprintf(":%d", service.port),
 		ReadTimeout: 15 * time.Second,
 	}
 
-	go httpService.server.ListenAndServe()
+	go service.server.ListenAndServe()
 	return nil
 }

@@ -1,38 +1,28 @@
 package main
 
 import (
-	"github.com/dieklingel/core/internal/core"
-	"go.uber.org/fx"
+	"github.com/dieklingel/core/audio"
+	"github.com/dieklingel/core/camera"
 )
 
-func NewFxStorageService(lc fx.Lifecycle) core.StorageService {
-	return NewStorageService("core.yaml")
+func NewFxHttpService(camera *camera.Camera) *HttpService {
+	return NewHttpService(8080, camera)
 }
 
-func NewFxCameraService(lc fx.Lifecycle, storageService core.StorageService) *CameraService {
-	return NewCameraService(storageService)
+func NewFxCamera() *camera.Camera {
+	camera, err := camera.New("videotestsrc ! video/x-raw, framerate=30/1, width=1280, height=720 ! appsink name=rawsink")
+	if err != nil {
+		panic(err)
+	}
+
+	return camera
 }
 
-func NewFxAudioService(lc fx.Lifecycle, storageService core.StorageService) core.AudioService {
-	return NewAudioService(storageService)
-}
+func NewFxAudioInput() *audio.Input {
+	input, err := audio.NewInput("audiotestsrc ! audio/x-raw, format=S16LE, layout=interleaved, rate=48000, channels=1 ! appsink name=rawsink")
+	if err != nil {
+		panic(err)
+	}
 
-func NewFxHttpService(lc fx.Lifecycle, storageService core.StorageService, cameraService *CameraService) *HttpService {
-	return NewHttpService(8080, storageService, cameraService)
-}
-
-func NewFxActionService(lc fx.Lifecycle, storageService core.StorageService) core.ActionService {
-	return NewActionService(storageService)
-}
-
-func NewFxWebRTCService(lc fx.Lifecycle, cameraService *CameraService, audioService core.AudioService) *WebRTCService {
-	return NewWebRTCService(cameraService, audioService)
-}
-
-func NewFxMqttService(lc fx.Lifecycle, storageService core.StorageService, actionService core.ActionService, webrtcService *WebRTCService) *MqttService {
-	return NewMqttService(storageService, actionService, webrtcService)
-}
-
-func NewFxPluginService(lc fx.Lifecycle, storageService *StorageService) *PluginService {
-	return NewPluginService(storageService)
+	return input
 }

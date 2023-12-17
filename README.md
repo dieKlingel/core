@@ -59,7 +59,7 @@ sudo snap set dieklingel-core daemon=true
 
 - [x] mjpeg api for video
 
-### new born baby -- 0.3.2 (release: ?)
+### new born baby -- 0.3.4 (release: 2023-12-17)
 
 - [x] establish a call over mqtt
 - [x] execute actions over mqtt
